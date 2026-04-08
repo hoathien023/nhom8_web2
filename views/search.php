@@ -20,20 +20,18 @@
 
     // Giá cao và thấp nhất của sản phẩm
     $min_max_price = $ProductModel->get_min_max_prices();
-    $min_filter_price = (int)($min_max_price['min_price'] ?? 0);
-    $max_filter_price = min((int)($min_max_price['max_price'] ?? 100000000), 100000000);
+    $min_filter_price = 0;
+    $max_filter_price = 50000000;
 
     if ($from_price !== null) {
-        $from_price = min($from_price, 100000000);
+        $from_price = min($from_price, 50000000);
     }
     if ($to_price !== null) {
-        $to_price = min($to_price, 100000000);
+        $to_price = min($to_price, 50000000);
     }
 
-    if ($from_price !== null && $to_price !== null && $from_price > $to_price) {
-        $tmp = $from_price;
-        $from_price = $to_price;
-        $to_price = $tmp;
+    if ($from_price !== null && $to_price !== null && $to_price < $from_price) {
+        $to_price = $from_price;
     }
 
     $list_products = $ProductModel->search_products_advanced($query, $category_id, $from_price, $to_price, $page, $perPage);
@@ -53,6 +51,14 @@
         'from_price' => $from_price !== null ? $from_price : '',
         'to_price' => $to_price !== null ? $to_price : '',
     );
+
+    $selected_category_name = 'Tất cả';
+    foreach ($list_catgories as $cate_item) {
+        if ((int)$cate_item['category_id'] === (int)$category_id) {
+            $selected_category_name = $cate_item['name'];
+            break;
+        }
+    }
 ?>
 
 <!-- Breadcrumb Begin -->
@@ -65,7 +71,7 @@
                         <a href="index.php?url=cua-hang">
                             Tìm kiếm sản phẩm
                         </a>
-                        <span>Kết quả tìm kiếm sản phẩm</span>
+                        <span>Kết quả: <?=$selected_category_name?></span>
                     </div>
                 </div>
             </div>
@@ -86,12 +92,13 @@
                             <div class="categories__accordion">
                                 <div class="accordion" id="accordionExample">
                                     <?php foreach ($list_catgories as $value) {
-                                        extract($value);
+                                        $cate_id = (int)$value['category_id'];
+                                        $cate_name = $value['name'];
                                     ?>
                                     <div class="card">
                                         <div class="card-heading active">
-                                            <a href="index.php?url=tim-kiem&category_id=<?=$category_id?>&query=<?=urlencode($query)?>&from_price=<?=$from_price !== null ? $from_price : ''?>&to_price=<?=$to_price !== null ? $to_price : ''?>" >
-                                                <?=$name?>
+                                            <a href="index.php?url=tim-kiem&category_id=<?=$cate_id?>&query=<?=urlencode($query)?>&from_price=<?=$from_price !== null ? $from_price : ''?>&to_price=<?=$to_price !== null ? $to_price : ''?>" >
+                                                <?=$cate_name?>
                                             </a>
                                         </div>
                                         
@@ -119,7 +126,7 @@
                                         <div class="price-input mb-2">
                                             <p>Danh mục:</p>
                                             <select name="category_id" class="form-control">
-                                                <option value="">Tất cả</option>
+                                                <option value="" <?=$category_id <= 0 ? 'selected' : ''?>>Tất cả</option>
                                                 <?php foreach ($list_catgories as $cate_item) { ?>
                                                     <option value="<?=$cate_item['category_id']?>" <?=$category_id === (int)$cate_item['category_id'] ? 'selected' : ''?>>
                                                         <?=$cate_item['name']?>
@@ -265,17 +272,24 @@
 
 <style>
 .btn-filter-price {
-    width: 100%;
-    max-width: 210px;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 12px auto 0;
     background: #0a68ff;
     color: #fff;
     border: none;
     border-radius: 6px;
-    padding: 10px 12px;
+    padding: 10px 12px !important;
     font-weight: 600;
     text-align: center;
     display: block;
+    position: static !important;
+    float: none !important;
+    letter-spacing: normal !important;
+    font-size: 14px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .btn-filter-price:hover {
@@ -293,17 +307,23 @@
 }
 
 .price-range-box input {
-    width: calc(50% - 20px);
+    width: calc(50% - 22px);
     border: none;
     outline: none;
     background: transparent;
     text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0;
+    min-width: 0;
+    overflow: visible;
 }
 
 .price-separator {
     color: #555;
     font-weight: 500;
     white-space: nowrap;
+    font-size: 13px;
 }
 
 .price-label {
@@ -320,32 +340,55 @@
         return numberValue.toLocaleString('en-US');
     }
 
+    function snapToStep(value, step) {
+        var numberValue = parseInt(value, 10);
+        if (isNaN(numberValue)) return '';
+        return String(Math.round(numberValue / step) * step);
+    }
+
     function normalizePriceInputs() {
         var minInput = document.getElementById('minamount');
         var maxInput = document.getElementById('maxamount');
         var minDisplay = document.getElementById('minamount_display');
         var maxDisplay = document.getElementById('maxamount_display');
         if (!minInput || !maxInput || !minDisplay || !maxDisplay) return;
+        var isTypingMin = false;
+        var isTypingMax = false;
 
         function digitsOnly(value) {
             var digits = String(value || '').replace(/[^\d]/g, '');
             if (!digits) return '';
-            return String(Math.min(parseInt(digits, 10), 100000000));
+            var clamped = Math.min(parseInt(digits, 10), 100000000);
+            return snapToStep(clamped, 5000);
         }
 
         function syncFromSliderToDisplay() {
-            minDisplay.value = formatNumberInput(minInput.value);
-            maxDisplay.value = formatNumberInput(maxInput.value);
+            minInput.value = digitsOnly(minInput.value);
+            maxInput.value = digitsOnly(maxInput.value);
+            if (!isTypingMin) {
+                minDisplay.value = formatNumberInput(minInput.value);
+            }
+            if (!isTypingMax) {
+                maxDisplay.value = formatNumberInput(maxInput.value);
+            }
         }
 
         function syncFromDisplayToSlider() {
             minInput.value = digitsOnly(minDisplay.value);
             maxInput.value = digitsOnly(maxDisplay.value);
+            if (minInput.value !== '' && maxInput.value !== '' && parseInt(maxInput.value, 10) < parseInt(minInput.value, 10)) {
+                maxInput.value = minInput.value;
+            }
             minDisplay.value = formatNumberInput(minDisplay.value);
             maxDisplay.value = formatNumberInput(maxDisplay.value);
         }
 
         syncFromSliderToDisplay();
+
+        minDisplay.addEventListener('focus', function() { isTypingMin = true; });
+        maxDisplay.addEventListener('focus', function() { isTypingMax = true; });
+        minDisplay.addEventListener('blur', function() { isTypingMin = false; syncFromDisplayToSlider(); });
+        maxDisplay.addEventListener('blur', function() { isTypingMax = false; syncFromDisplayToSlider(); });
 
         minDisplay.addEventListener('input', function() {
             syncFromDisplayToSlider();

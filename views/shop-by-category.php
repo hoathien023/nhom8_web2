@@ -1,12 +1,20 @@
 <?php
     if(isset($_GET['id']) && $_GET['id'] > 0) {
         $category_id = $_GET['id'];
-        $list_products = $ProductModel->select_products_by_cate($category_id);
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $productsPerPage = 9;
+        $list_products = $ProductModel->select_products_by_cate_paginated($category_id, $page, $productsPerPage);
+        $total_by_category = $ProductModel->count_products_by_cate($category_id);
+        $totalProducts = (int)($total_by_category['total'] ?? 0);
+        $numberOfPages = max(1, (int)ceil($totalProducts / $productsPerPage));
     }else {
         header("Location: index.php");
     }
 
     $list_catgories = $CategoryModel->select_all_categories();
+    $min_max_price = $ProductModel->get_min_max_prices();
+    $min_filter_price = (int)($min_max_price['min_price'] ?? 0);
+    $max_filter_price = min((int)($min_max_price['max_price'] ?? 100000000), 100000000);
 ?>
 
 <!-- Breadcrumb Begin -->
@@ -70,17 +78,22 @@
                             </div>
                             <div class="filter-range-wrap">
                                 <div class="price-range ui-slider ui-corner-all ui-slider-horizontal ui-widget ui-widget-content"
-                                data-min="100000" data-max="5000000"></div>
+                                data-min="<?=$min_filter_price?>" data-max="<?=$max_filter_price?>"></div>
                                 <div class="range-slider">
-                                    <form action="index.html" method="post">
+                                    <form action="index.php" method="get">
+                                        <input type="hidden" name="url" value="tim-kiem">
+                                        <input type="hidden" name="category_id" value="<?=$category_id?>">
                                         
                                         <div class="price-input">
                                             <p>Giá từ:</p> <br>
-                                            <input type="text" id="minamount" > <p>đến</p>
-                                            <input type="text" id="maxamount" > <br>
-
-                                            <!-- Sử Dụng Thẻ a hoặc input de loc gia -->
-                                            <input type="submit" class="filter-price" name="" value="LỌC GIÁ">
+                                            <div class="price-range-box">
+                                                <input type="text" id="minamount_display" name="from_price" placeholder="<?=number_format($min_filter_price)?>">
+                                                <span class="price-separator">đến</span>
+                                                <input type="text" id="maxamount_display" name="to_price" placeholder="<?=number_format($max_filter_price)?>">
+                                            </div>
+                                            <input type="hidden" id="minamount" value="<?=$min_filter_price?>">
+                                            <input type="hidden" id="maxamount" value="<?=$max_filter_price?>">
+                                            <input type="submit" class="filter-price btn-filter-price" value="LỌC GIÁ">
                                         </div>
                                     </form>
         
@@ -152,8 +165,29 @@
                         <?php 
                         }
                         ?>
-                        
-                        
+                        <?php
+                            $pagination_prev = '';
+                            $pagination_next = '';
+                            $html_pagination = '';
+                            if ($page > 1) {
+                                $pagination_prev = '<a href="index.php?url=danh-muc-san-pham&id=' . $category_id . '&page=' . ($page - 1) . '"><i class="fa fa-angle-left"></i></a>';
+                            }
+                            if ($page < $numberOfPages) {
+                                $pagination_next = '<a href="index.php?url=danh-muc-san-pham&id=' . $category_id . '&page=' . ($page + 1) . '"><i class="fa fa-angle-right"></i></a>';
+                            }
+
+                            for ($i = 1; $i <= $numberOfPages; $i++) {
+                                $active = $i === $page ? 'active' : '';
+                                $html_pagination .= '<a class="' . $active . '" href="index.php?url=danh-muc-san-pham&id=' . $category_id . '&page=' . $i . '">' . $i . '</a>';
+                            }
+                        ?>
+                        <div class="col-lg-12 text-center mt-3">
+                            <div class="pagination__option">
+                                <?=$pagination_prev?>
+                                <?=$html_pagination?>
+                                <?=$pagination_next?>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <?php }else {?>
@@ -172,3 +206,108 @@
         </div>
     </section>
     <!-- Shop Section End -->
+
+<style>
+.btn-filter-price {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 12px auto 0;
+    background: #0a68ff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 12px !important;
+    font-weight: 600;
+    text-align: center;
+    display: block;
+    position: static !important;
+    float: none !important;
+    font-size: 14px !important;
+}
+
+.price-range-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e1e1e1;
+    border-radius: 6px;
+    padding: 8px;
+    margin-top: 6px;
+}
+
+.price-range-box input {
+    width: calc(50% - 22px);
+    border: none;
+    outline: none;
+    background: transparent;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.price-separator {
+    color: #555;
+    font-weight: 500;
+    white-space: nowrap;
+    font-size: 13px;
+}
+</style>
+
+<script>
+(function() {
+    function formatNumberInput(value) {
+        var digits = String(value || '').replace(/[^\d]/g, '');
+        if (!digits) return '';
+        var numberValue = Math.min(parseInt(digits, 10), 100000000);
+        return numberValue.toLocaleString('en-US');
+    }
+
+    function digitsOnly(value) {
+        var digits = String(value || '').replace(/[^\d]/g, '');
+        if (!digits) return '';
+        return String(Math.min(parseInt(digits, 10), 100000000));
+    }
+
+    function normalizePriceInputs() {
+        var minInput = document.getElementById('minamount');
+        var maxInput = document.getElementById('maxamount');
+        var minDisplay = document.getElementById('minamount_display');
+        var maxDisplay = document.getElementById('maxamount_display');
+        if (!minInput || !maxInput || !minDisplay || !maxDisplay) return;
+        var isTypingMin = false;
+        var isTypingMax = false;
+
+        function syncFromSliderToDisplay() {
+            minInput.value = digitsOnly(minInput.value);
+            maxInput.value = digitsOnly(maxInput.value);
+            if (!isTypingMin) minDisplay.value = formatNumberInput(minInput.value);
+            if (!isTypingMax) maxDisplay.value = formatNumberInput(maxInput.value);
+        }
+
+        function syncFromDisplayToSlider() {
+            minInput.value = digitsOnly(minDisplay.value);
+            maxInput.value = digitsOnly(maxDisplay.value);
+            if (minInput.value !== '' && maxInput.value !== '' && parseInt(maxInput.value, 10) < parseInt(minInput.value, 10)) {
+                maxInput.value = minInput.value;
+            }
+            minDisplay.value = formatNumberInput(minInput.value);
+            maxDisplay.value = formatNumberInput(maxInput.value);
+        }
+
+        syncFromSliderToDisplay();
+        minDisplay.addEventListener('focus', function() { isTypingMin = true; });
+        maxDisplay.addEventListener('focus', function() { isTypingMax = true; });
+        minDisplay.addEventListener('blur', function() { isTypingMin = false; syncFromDisplayToSlider(); });
+        maxDisplay.addEventListener('blur', function() { isTypingMax = false; syncFromDisplayToSlider(); });
+        minDisplay.addEventListener('input', syncFromDisplayToSlider);
+        maxDisplay.addEventListener('input', syncFromDisplayToSlider);
+        setInterval(syncFromSliderToDisplay, 200);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', normalizePriceInputs);
+    } else {
+        normalizePriceInputs();
+    }
+})();
+</script>
