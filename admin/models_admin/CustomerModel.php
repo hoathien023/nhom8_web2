@@ -25,6 +25,24 @@
             return pdo_query($sql, $username);
         }
 
+        public function get_user_by_id($user_id) {
+            $sql = "SELECT * FROM users WHERE user_id = ?";
+
+            return pdo_query_one($sql, $user_id);
+        }
+
+        public function update_user_active($user_id, $active) {
+            $sql = "UPDATE users SET active = ? WHERE user_id = ?";
+
+            pdo_execute($sql, $active, $user_id);
+        }
+
+        public function update_user_password($user_id, $password) {
+            $sql = "UPDATE users SET password = ? WHERE user_id = ?";
+
+            pdo_execute($sql, $password, $user_id);
+        }
+
     }
 
     $CustomerModel = new CustomerModel();

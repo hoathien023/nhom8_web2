@@ -16,6 +16,7 @@
         'quantity' => '',
         'price' => '',
         'sale_price' => '',   
+        'status' => 1,
         'details' => '',   
         'short_description' => '',   
     );
@@ -30,6 +31,7 @@
         $quantity = $_POST["quantity"];
         $price = $_POST["price"];
         $sale_price = $_POST["sale_price"];
+        $status = isset($_POST["status"]) ? (int)$_POST["status"] : 1;
         $details = isset($_POST["details"]) ? $_POST["details"] : '';
         $short_description = isset($_POST["short_description"]) ? $_POST["short_description"] : '';
 
@@ -78,7 +80,7 @@
                 }
 
                 try {
-                    $result = $ProductModel->insert_product($category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description);
+                    $ProductModel->insert_product($category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description, $status);
                     $success = 'Thêm sản phẩm thành công';
                 } catch (Exception $e) {
                     $error_message = $e->getMessage();
@@ -94,6 +96,7 @@
             $temp['quantity'] = $quantity;
             $temp['short_description'] = $short_description;
             $temp['details'] = $details;
+            $temp['status'] = $status;
 
         }
 
@@ -180,6 +183,14 @@
                         
                     </select>
                     <label for="floatingSelect">Chọn danh mục</label>
+                </div>
+
+                <div class="form-floating mb-3">
+                    <select name="status" class="form-select" id="floatingSelectStatus">
+                        <option value="1" <?=$temp['status'] == 1 ? 'selected' : ''?>>Hiển thị</option>
+                        <option value="0" <?=$temp['status'] == 0 ? 'selected' : ''?>>Ẩn</option>
+                    </select>
+                    <label for="floatingSelectStatus">Hiện trạng</label>
                 </div>
                 <h6 class="mb-4">
                     <input name="themsanpham" type="submit" value="Đăng" class="btn btn-custom">

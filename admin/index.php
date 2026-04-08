@@ -137,6 +137,9 @@
             case 'them-hoa-don':
                 require_once "kho-hang/add.php";         
                 break;
+            case 'sua-hoa-don':
+                require_once "kho-hang/edit.php";         
+                break;
             
 
             default:

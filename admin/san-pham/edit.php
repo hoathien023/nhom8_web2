@@ -13,9 +13,14 @@
         $product_id = $_GET['id'];
 
         $product = $ProductModel->select_product_by_id($product_id);
+        if (!$product) {
+            header("Location: index.php?quanli=danh-sach-san-pham");
+            exit();
+        }
         extract($product);
     }else {
         header("Location: index.php?quanli=danh-sach-san-pham");
+        exit();
     }
 
     
@@ -23,11 +28,12 @@
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["update_product"])) {
         $name = trim($_POST["name"]);
         $category_id = $_POST["category_id"];
-        $image = $_FILES["image"]['name'];
+        $new_image = $_FILES["image"]['name'];
 
         $quantity = $_POST["quantity"];
         $price = $_POST["price"];
         $sale_price = $_POST["sale_price"];
+        $status = isset($_POST["status"]) ? (int)$_POST["status"] : 1;
         $details = isset($_POST["details"]) ? $_POST["details"] : '';
         $short_description = isset($_POST["short_description"]) ? $_POST["short_description"] : '';
 
@@ -58,10 +64,16 @@
             }
 
             try {
-                $result = $ProductModel->update_product($category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description, $product_id);
+                $image_to_save = $new_image;
+                if (empty($image_to_save)) {
+                    $image_to_save = $product['image'];
+                }
+
+                $ProductModel->update_product($category_id, $name, $image_to_save, $quantity, $price, $sale_price, $details, $short_description, $status, $product_id);
 
                 setcookie('success_update', 'Cập nhật sản phẩm thành công', time() + 5, '/');
                 header("Location: index.php?quanli=cap-nhat-san-pham&id=".$product_id);
+                exit();
             } catch (Exception $e) {
                 $error_message = $e->getMessage();
                 echo 'Thêm sản phẩm thất bại: ' . $error_message;
@@ -71,6 +83,18 @@
         }
         
 
+    }
+
+    $current_status = (int)$product['status'];
+    if ($_SERVER["REQUEST_METHOD"] == "POST") {
+        $name = isset($name) ? $name : $product['name'];
+        $price = isset($price) ? $price : $product['price'];
+        $sale_price = isset($sale_price) ? $sale_price : $product['sale_price'];
+        $quantity = isset($quantity) ? $quantity : $product['quantity'];
+        $details = isset($details) ? $details : $product['details'];
+        $short_description = isset($short_description) ? $short_description : $product['short_description'];
+        $image = $product['image'];
+        $current_status = isset($status) ? (int)$status : (int)$product['status'];
     }
     $success = '';
     
@@ -165,9 +189,16 @@
                     </select>
                     <label for="floatingSelect">Chọn danh mục</label>
                 </div>
+                <div class="form-floating mb-3">
+                    <select name="status" class="form-select" id="floatingSelectStatus">
+                        <option value="1" <?=$current_status === 1 ? 'selected' : ''?>>Hiển thị</option>
+                        <option value="0" <?=$current_status === 0 ? 'selected' : ''?>>Ẩn</option>
+                    </select>
+                    <label for="floatingSelectStatus">Hiện trạng</label>
+                </div>
                 <h6 class="mb-4">
                     <input name="update_product" type="submit" value="Cập nhật" class="btn btn-custom">
-                    <a href="index.php?quanli=thung-rac-san-pham&xoatam=<?=$product_id?>" onclick="return confirmDeletionTemp();" class="btn btn-custom">Xóa tạm</a>            
+                    <a href="index.php?quanli=danh-sach-san-pham&xoa=<?=$product_id?>" onclick="return confirmDeletionTemp();" class="btn btn-custom">Xóa</a>            
                 </h6>           
 
 

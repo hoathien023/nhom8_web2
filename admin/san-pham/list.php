@@ -1,4 +1,20 @@
 <?php
+if (isset($_GET['xoa']) && $_GET['xoa'] > 0) {
+    $product_id = (int)$_GET['xoa'];
+    $has_related_orders = $ProductModel->has_product_related_orders($product_id);
+
+    if ($has_related_orders) {
+        $ProductModel->update_product_not_active($product_id);
+        setcookie('success_product_action', 'Sản phẩm đã phát sinh giao dịch, hệ thống chuyển sang ẩn thay vì xóa hẳn.', time() + 5, '/');
+    } else {
+        $ProductModel->delete_product($product_id);
+        setcookie('success_product_action', 'Đã xóa sản phẩm khỏi CSDL.', time() + 5, '/');
+    }
+
+    header("Location: index.php?quanli=danh-sach-san-pham");
+    exit();
+}
+
 if (isset($_POST['search'])) {
     $keyword = $_POST['keyword'];
     $cate_id = $_POST['search_cate'];
@@ -16,6 +32,11 @@ if (isset($_GET['page'])) {
 $list_categories = $CategoryModel->select_all_categories();
 $list_products = $ProductModel->select_list_products($keyword, $cate_id, $page,5 );
 $count_recycle = $ProductModel->select_recycle_products();
+$success = '';
+if (isset($_COOKIE['success_product_action']) && !empty($_COOKIE['success_product_action'])) {
+    $success = $_COOKIE['success_product_action'];
+}
+$html_alert = $BaseModel->alert_error_success('', $success);
 
 // Phân trang
 $all_products = $ProductModel->select_products();
@@ -78,6 +99,7 @@ for ($i = 1; $i <= $numberOfPages; $i++) {
             <a href="them-san-pham" class="btn btn-custom"><i class="fa fa-plus"></i> Thêm sản phẩm</a>
 
         </div>
+        <?=$html_alert?>
 
         <div class="row align-items-center">
             <div class="col-lg-7 d-flex mb-3">
@@ -156,8 +178,8 @@ for ($i = 1; $i <= $numberOfPages; $i++) {
                                         Xem
                                     </a>
                                     <a class="dropdown-item" href="index.php?quanli=cap-nhat-san-pham&id=<?=$value['product_id']?>">Sửa</a>
-                                    <a class="dropdown-item text-danger" onclick="return confirmDeletionTemp();" href="index.php?quanli=thung-rac-san-pham&xoatam=<?=$value['product_id']?>">
-                                        Xóa tạm
+                                    <a class="dropdown-item text-danger" onclick="return confirmDeletionTemp();" href="index.php?quanli=danh-sach-san-pham&xoa=<?=$value['product_id']?>">
+                                        Xóa
                                     </a>
                                 </div>
                             </div>

@@ -1,12 +1,25 @@
 <?php
     class ProductModel {
-        public function insert_product($category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description) {
+        public function ensure_cost_price_column() {
+            $check_sql = "SELECT COUNT(*) FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'products' 
+                AND COLUMN_NAME = 'cost_price'";
+            $exists = (int)pdo_query_value($check_sql);
+
+            if ($exists === 0) {
+                $alter_sql = "ALTER TABLE products ADD COLUMN cost_price INT NOT NULL DEFAULT 0 AFTER sale_price";
+                pdo_execute($alter_sql);
+            }
+        }
+
+        public function insert_product($category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description, $status) {
            
            $sql = "INSERT INTO products 
-           (category_id, name, image, quantity, price, sale_price, details, short_description)
-            VALUES (?,?,?,?,?,?,?,?)";
+           (category_id, name, image, quantity, price, sale_price, details, short_description, status)
+            VALUES (?,?,?,?,?,?,?,?,?)";
 
-            pdo_execute($sql, $category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description);
+            pdo_execute($sql, $category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description, $status);
         }
 
         public function select_products() {
@@ -65,6 +78,13 @@
             return pdo_query_one($sql, $product_id);
         }
 
+        public function select_products_for_import() {
+            $this->ensure_cost_price_column();
+            $sql = "SELECT product_id, name, quantity, cost_price FROM products WHERE status = 1 ORDER BY name ASC";
+
+            return pdo_query($sql);
+        }
+
         public function discount_percentage($price, $sale_price) {
             $discount_percentage = ($price - $sale_price) / $price * 100;
 
@@ -83,7 +103,14 @@
             pdo_execute($sql, $product_id);
         }
 
-        public function update_product($category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description, $product_id) {
+        public function has_product_related_orders($product_id) {
+            $sql = "SELECT COUNT(*) FROM orderdetails WHERE product_id = ?";
+            $count = (int)pdo_query_value($sql, $product_id);
+
+            return $count > 0;
+        }
+
+        public function update_product($category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description, $status, $product_id) {
             $sql = "UPDATE products SET 
             category_id = '".$category_id."', 
             name = '".$name."',";
@@ -96,11 +123,40 @@
                     price = '".$price."', 
                     sale_price = '".$sale_price."', 
                     details = '".$details."', 
-                    short_description = '".$short_description."' 
+                    short_description = '".$short_description."',
+                    status = '".$status."' 
                     WHERE product_id = ".$product_id;
             
             
             pdo_execute($sql);
+        }
+
+        public function apply_import_item($product_id, $import_qty, $import_cost) {
+            $this->ensure_cost_price_column();
+            $product = $this->select_product_by_id($product_id);
+
+            if (!$product) {
+                return;
+            }
+
+            $old_qty = (int)$product['quantity'];
+            $old_cost = isset($product['cost_price']) ? (int)$product['cost_price'] : 0;
+            $import_qty = (int)$import_qty;
+            $import_cost = (int)$import_cost;
+            $new_qty = $old_qty + $import_qty;
+
+            if ($new_qty <= 0) {
+                $new_cost = $import_cost;
+            } elseif ($old_cost <= 0 || $old_qty <= 0) {
+                $new_cost = $import_cost;
+            } else {
+                $new_cost = (int)round((($old_qty * $old_cost) + ($import_qty * $import_cost)) / $new_qty);
+            }
+
+            $sql = "UPDATE products 
+                    SET quantity = ?, cost_price = ?, create_date = NOW()
+                    WHERE product_id = ?";
+            pdo_execute($sql, $new_qty, $new_cost, $product_id);
         }
     }
 
