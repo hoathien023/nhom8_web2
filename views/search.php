@@ -336,7 +336,7 @@
     function formatNumberInput(value) {
         var digits = String(value || '').replace(/[^\d]/g, '');
         if (!digits) return '';
-        var numberValue = Math.min(parseInt(digits, 10), 100000000);
+        var numberValue = Math.min(parseInt(digits, 10), 50000000);
         return numberValue.toLocaleString('en-US');
     }
 
@@ -358,7 +358,7 @@
         function digitsOnly(value) {
             var digits = String(value || '').replace(/[^\d]/g, '');
             if (!digits) return '';
-            var clamped = Math.min(parseInt(digits, 10), 100000000);
+            var clamped = Math.min(parseInt(digits, 10), 50000000);
             return snapToStep(clamped, 5000);
         }
 

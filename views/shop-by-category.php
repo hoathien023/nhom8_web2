@@ -13,8 +13,8 @@
 
     $list_catgories = $CategoryModel->select_all_categories();
     $min_max_price = $ProductModel->get_min_max_prices();
-    $min_filter_price = (int)($min_max_price['min_price'] ?? 0);
-    $max_filter_price = min((int)($min_max_price['max_price'] ?? 100000000), 100000000);
+    $min_filter_price = 0;
+    $max_filter_price = 50000000;
 ?>
 
 <!-- Breadcrumb Begin -->
@@ -74,7 +74,7 @@
                         </div>
                         <div class="sidebar__filter">
                             <div class="section-title">
-                                <h4>TÌM THEO GIÁ</h4>
+                                <h4>TÌM NÂNG CAO</h4>
                             </div>
                             <div class="filter-range-wrap">
                                 <div class="price-range ui-slider ui-corner-all ui-slider-horizontal ui-widget ui-widget-content"
@@ -83,9 +83,13 @@
                                     <form action="index.php" method="get">
                                         <input type="hidden" name="url" value="tim-kiem">
                                         <input type="hidden" name="category_id" value="<?=$category_id?>">
+                                        <div class="price-input mb-2">
+                                            <p>Tên sản phẩm:</p>
+                                            <input type="text" name="query" value="">
+                                        </div>
                                         
                                         <div class="price-input">
-                                            <p>Giá từ:</p> <br>
+                                            <p>Khoảng giá</p>
                                             <div class="price-range-box">
                                                 <input type="text" id="minamount_display" name="from_price" placeholder="<?=number_format($min_filter_price)?>">
                                                 <span class="price-separator">đến</span>
@@ -258,14 +262,14 @@
     function formatNumberInput(value) {
         var digits = String(value || '').replace(/[^\d]/g, '');
         if (!digits) return '';
-        var numberValue = Math.min(parseInt(digits, 10), 100000000);
+        var numberValue = Math.min(parseInt(digits, 10), 50000000);
         return numberValue.toLocaleString('en-US');
     }
 
     function digitsOnly(value) {
         var digits = String(value || '').replace(/[^\d]/g, '');
         if (!digits) return '';
-        return String(Math.min(parseInt(digits, 10), 100000000));
+        return String(Math.min(parseInt(digits, 10), 50000000));
     }
 
     function normalizePriceInputs() {
