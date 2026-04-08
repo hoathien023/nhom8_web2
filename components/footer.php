@@ -117,7 +117,7 @@ $(document).ready(function() {
 <script src="public/js/owl.carousel.min.js"></script>
 <script src="public/js/jquery.nicescroll.min.js"></script>
 
-<script src="public/js/main.js"></script>
+<script src="public/js/main.js?v=20260408-1"></script>
 
 <!-- dialogflow -->
 <!-- <script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>

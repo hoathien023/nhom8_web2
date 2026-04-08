@@ -72,6 +72,9 @@ if (!isset($_GET['url'])) {
         case 'thanh-toan-momo-address-2':
             require_once "views/checkout/momo-address-2.php";
             break;
+        case 'thanh-toan-ngan-hang':
+            require_once "views/checkout/bank-transfer.php";
+            break;
         case 'thanh-toan-dia-chi2':
             require_once "views/thanh-toan-dia-chi.php";
             break;

@@ -141,6 +141,21 @@
             $sql = "DELETE FROM carts WHERE user_id = ?";
             pdo_execute($sql, $user_id);
         }
+
+        public function delete_cart_by_product_ids($user_id, $product_ids) {
+            $product_ids = array_values(array_filter(array_map('intval', (array)$product_ids), function ($id) {
+                return $id > 0;
+            }));
+
+            if (empty($product_ids)) {
+                return;
+            }
+
+            $placeholders = implode(',', array_fill(0, count($product_ids), '?'));
+            $sql = "DELETE FROM carts WHERE user_id = ? AND product_id IN ($placeholders)";
+            $params = array_merge(array((int)$user_id), $product_ids);
+            pdo_execute($sql, ...$params);
+        }
     }
 
     $OrderModel = new OrderModel();

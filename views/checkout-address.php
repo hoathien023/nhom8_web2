@@ -12,12 +12,17 @@
     );
 try {    
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["checkout"])) {
+        if (!isset($_SESSION['user'])) {
+            header("Location: index.php?url=dang-nhap");
+            exit();
+        }
         // Table orders
-        $user_id = $_POST["user_id"];
+        $user_id = (int)$_SESSION['user']['id'];
         $total = $_POST["total_checkout"];
         $address = $_POST["address"];
         $phone = $_POST["phone"];
         $note = $_POST["note"];
+        $payment_method = isset($_POST["payment_method"]) ? trim($_POST["payment_method"]) : "cod";
 
         // Check form
         if(empty($address)) {
@@ -43,6 +48,10 @@ try {
         $arr_product_id = $_POST["product_id"];
         $arr_quantity = $_POST["quantity"];
         $arr_price = $_POST["price"];
+        if ($payment_method === 'momo') {
+            header("Location: index.php?url=thanh-toan-momo-address");
+            exit();
+        }
 
         if(empty(array_filter($error))) {
             $items = [];
@@ -56,7 +65,23 @@ try {
 
             $order_id = $OrderModel->create_order_with_stock_validation($user_id, $total, $address, $phone, $note, $items);
             if(!empty($order_id)) {
+                $_SESSION['last_order_summary'] = array(
+                    'order_id' => $order_id,
+                    'address' => $address,
+                    'phone' => $phone,
+                    'payment_method' => $payment_method,
+                    'total' => (int)$total
+                );
+                if (!empty($_SESSION['checkout_selected_product_ids'])) {
+                    $OrderModel->delete_cart_by_product_ids($user_id, $_SESSION['checkout_selected_product_ids']);
+                    unset($_SESSION['checkout_selected_product_ids']);
+                }
+                if ($payment_method === 'bank') {
+                    header("Location: index.php?url=thanh-toan-ngan-hang");
+                    exit();
+                }
                 header("Location: cam-on");
+                exit();
             }
         }else {
             $temp['address'] = $address;
@@ -75,6 +100,12 @@ try {
     if(isset($_SESSION['user'])) { 
         $user_id = $_SESSION['user']['id'];
         $list_carts = $CartModel->select_all_carts($user_id);
+        if (!empty($_SESSION['checkout_selected_product_ids'])) {
+            $selected_ids = $_SESSION['checkout_selected_product_ids'];
+            $list_carts = array_values(array_filter($list_carts, function ($item) use ($selected_ids) {
+                return in_array((int)$item['product_id'], $selected_ids, true);
+            }));
+        }
         $count_cart = count($CartModel->count_cart($user_id));
     ?>
 <div class="breadcrumb-option">
@@ -202,8 +233,25 @@ try {
                         </div>
 
                         <?php if($count_cart > 0) {?>
-                        <div class="checkout__order__widget text-center text-dark mb-2">
-                            Thanh toán khi nhận hàng
+                        <div class="checkout__order__widget payment-method-box mb-2">
+                            <label class="payment-option is-selected">
+                                <input type="radio" name="payment_method" value="cod" checked>
+                                <span class="payment-icon"><i class="fa fa-money"></i></span>
+                                <span>Thanh toán khi nhận hàng (COD)</span>
+                            </label>
+                            <label class="payment-option">
+                                <input type="radio" name="payment_method" value="bank">
+                                <span class="payment-icon"><i class="fa fa-university"></i></span>
+                                <span>Chuyển khoản ngân hàng</span>
+                            </label>
+                            <label class="payment-option">
+                                <input type="radio" name="payment_method" value="momo">
+                                <span class="payment-icon"><i class="fa fa-credit-card"></i></span>
+                                <span>Ví MoMo</span>
+                            </label>
+                            <div id="bank-transfer-note" class="bank-transfer-note" style="display:none;">
+                                Chuyển khoản an toàn: chỉ chuyển vào tài khoản chính chủ do cửa hàng cung cấp sau khi xác nhận đơn. Không chia sẻ OTP, mã PIN, mật khẩu ngân hàng cho bất kỳ ai.
+                            </div>
                         </div>
                         <button type="button" class="site-btn" data-toggle="modal" data-target="#thanhtoan">
                             ĐẶT HÀNG
@@ -279,4 +327,83 @@ try {
     height: 20px;
     font-size: 15px;
 }
+
+.payment-method-box label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #dfe3eb;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.payment-method-box label:hover {
+    border-color: #0a68ff;
+    box-shadow: 0 4px 10px rgba(10, 104, 255, 0.12);
+}
+
+.payment-method-box input[type="radio"] {
+    width: 17px;
+    height: 17px;
+    accent-color: #0a68ff;
+}
+
+.payment-option.is-selected {
+    border-color: #0a68ff;
+    background: #eef4ff;
+    box-shadow: 0 4px 12px rgba(10, 104, 255, 0.18);
+}
+
+.payment-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #f3f7ff;
+    color: #0a68ff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+}
+
+.bank-transfer-note {
+    margin-top: 4px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px dashed #91b4ff;
+    background: #f5f9ff;
+    color: #174ea6;
+    font-size: 12px;
+    line-height: 1.45;
+}
 </style>
+
+<script>
+(function() {
+    var radios = document.querySelectorAll('.payment-option input[type="radio"]');
+    var bankNote = document.getElementById('bank-transfer-note');
+    if (!radios.length) return;
+
+    function syncPaymentState() {
+        radios.forEach(function(radio) {
+            var label = radio.closest('.payment-option');
+            if (!label) return;
+            label.classList.toggle('is-selected', !!radio.checked);
+        });
+        var selected = document.querySelector('.payment-option input[type="radio"]:checked');
+        if (bankNote) {
+            bankNote.style.display = (selected && selected.value === 'bank') ? 'block' : 'none';
+        }
+    }
+
+    radios.forEach(function(radio) {
+        radio.addEventListener('change', syncPaymentState);
+    });
+    syncPaymentState();
+})();
+</script>

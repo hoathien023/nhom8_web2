@@ -1,4 +1,11 @@
 <?php
+    $parse_price_input = function ($value) {
+        if (!isset($value) || $value === '') return null;
+        $normalized = preg_replace('/[^\d]/', '', (string)$value);
+        if ($normalized === '') return null;
+        return (int)$normalized;
+    };
+
     if (isset($_GET['page'])) {
         $page = $_GET['page'];
     } else {
@@ -7,9 +14,17 @@
 
     $list_products = $ProductModel->select_list_products($page, 9);
     $list_catgories = $CategoryModel->select_all_categories();
+    $is_hidden_category = function ($name) {
+        $category_name = trim((string)$name);
+        return $category_name === 'Chưa có danh mục' || $category_name === 'chưa có danh mục';
+    };
     $min_max_price = $ProductModel->get_min_max_prices();
     $min_filter_price = 0;
     $max_filter_price = 10000000;
+    $query = isset($_GET['query']) ? trim($_GET['query']) : '';
+    $selected_category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
+    $from_price = $parse_price_input($_GET['from_price'] ?? '');
+    $to_price = $parse_price_input($_GET['to_price'] ?? '');
 
 
 ?>
@@ -42,6 +57,9 @@
                             <div class="categories__accordion">
                                 <div class="accordion" id="accordionExample">
                                     <?php foreach ($list_catgories as $value) {
+                                        if ($is_hidden_category($value['name'])) {
+                                            continue;
+                                        }
                                         extract($value);
                                     ?>
                                     <div class="card">
@@ -70,14 +88,18 @@
                                         <input type="hidden" name="url" value="tim-kiem">
                                         <div class="price-input mb-2">
                                             <p>Tên sản phẩm:</p>
-                                            <input type="text" name="query" value="">
+                                            <input type="text" name="query" value="<?=htmlspecialchars($query)?>">
                                         </div>
                                         <div class="price-input mb-2">
                                             <p>Danh mục:</p>
                                             <select name="category_id" class="form-control">
-                                                <option value="" selected>Tất cả</option>
-                                                <?php foreach ($list_catgories as $cate_item) { ?>
-                                                    <option value="<?=$cate_item['category_id']?>"><?=$cate_item['name']?></option>
+                                                <option value="" <?=$selected_category_id <= 0 ? 'selected' : ''?>>Tất cả</option>
+                                                <?php foreach ($list_catgories as $cate_item) {
+                                                    if ($is_hidden_category($cate_item['name'])) {
+                                                        continue;
+                                                    }
+                                                ?>
+                                                    <option value="<?=$cate_item['category_id']?>" <?=$selected_category_id === (int)$cate_item['category_id'] ? 'selected' : ''?>><?=$cate_item['name']?></option>
                                                 <?php } ?>
                                             </select>
                                         </div>
@@ -85,9 +107,9 @@
                                         <div class="price-input">
                                             <p>Khoảng giá</p>
                                             <div class="price-range-box">
-                                                <input type="text" id="minamount" name="from_price" placeholder="<?=number_format($min_filter_price)?>">
+                                                <input type="text" id="minamount" name="from_price" value="<?=$from_price !== null ? number_format($from_price) : ''?>" placeholder="<?=number_format($min_filter_price)?>">
                                                 <span class="price-separator">đến</span>
-                                                <input type="text" id="maxamount" name="to_price" placeholder="<?=number_format($max_filter_price)?>">
+                                                <input type="text" id="maxamount" name="to_price" value="<?=$to_price !== null ? number_format($to_price) : ''?>" placeholder="<?=number_format($max_filter_price)?>">
                                             </div>
                                             <input type="submit" class="filter-price btn-filter-price" value="LỌC GIÁ">
                                         </div>
@@ -258,6 +280,12 @@
 }
 
 .price-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    margin: 0;
+    text-align: center;
     color: #555;
     font-weight: 500;
     white-space: nowrap;
