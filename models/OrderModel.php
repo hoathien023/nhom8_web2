@@ -1,5 +1,63 @@
 <?php
     class OrderModel{
+        public function create_order_with_stock_validation($user_id, $total, $address, $phone, $note, $items) {
+            $conn = pdo_get_connection();
+            try {
+                $conn->beginTransaction();
+
+                if (empty($items)) {
+                    throw new Exception("Giỏ hàng trống.");
+                }
+
+                foreach ($items as $item) {
+                    $product_id = (int)$item['product_id'];
+                    $quantity = (int)$item['quantity'];
+                    if ($product_id <= 0 || $quantity <= 0) {
+                        throw new Exception("Dữ liệu sản phẩm không hợp lệ.");
+                    }
+
+                    $stmt = $conn->prepare("SELECT product_id, name, quantity, status, sale_price FROM products WHERE product_id = ? FOR UPDATE");
+                    $stmt->execute([$product_id]);
+                    $product = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                    if (!$product || (int)$product['status'] !== 1) {
+                        throw new Exception("Có sản phẩm đã bị ẩn hoặc không tồn tại.");
+                    }
+
+                    if ((int)$product['quantity'] < $quantity) {
+                        throw new Exception("Sản phẩm '" . $product['name'] . "' không đủ tồn kho.");
+                    }
+                }
+
+                $stmtOrder = $conn->prepare("INSERT INTO orders(user_id, total, address, phone, note) VALUES(?,?,?,?,?)");
+                $stmtOrder->execute([$user_id, $total, $address, $phone, $note]);
+                $order_id = (int)$conn->lastInsertId();
+
+                $stmtDetail = $conn->prepare("INSERT INTO orderdetails(order_id, product_id, quantity, price) VALUES(?,?,?,?)");
+                $stmtQty = $conn->prepare("UPDATE products SET quantity = quantity - ?, sell_quantity = sell_quantity + ? WHERE product_id = ?");
+
+                foreach ($items as $item) {
+                    $product_id = (int)$item['product_id'];
+                    $quantity = (int)$item['quantity'];
+                    $price = (int)$item['price'];
+
+                    $stmtDetail->execute([$order_id, $product_id, $quantity, $price]);
+                    $stmtQty->execute([$quantity, $quantity, $product_id]);
+                }
+
+                $stmtDeleteCart = $conn->prepare("DELETE FROM carts WHERE user_id = ?");
+                $stmtDeleteCart->execute([$user_id]);
+
+                $conn->commit();
+                return $order_id;
+            } catch (Exception $e) {
+                if ($conn->inTransaction()) {
+                    $conn->rollBack();
+                }
+                throw $e;
+            }
+        }
+
         public function select_order_id() {
             $sql = "SELECT order_id FROM orders ORDER BY date DESC LIMIT 1";
 

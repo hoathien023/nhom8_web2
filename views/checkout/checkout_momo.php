@@ -49,34 +49,19 @@ try {
             include_once "views/checkout/momo.php";
 
             // Sau khi thanh toán momo thành công
-            // Bước 1: Insert dữ liệu vào orders
-            $OrderModel->insert_orders($user_id, $total, $address, $phone, $note);
-            // Bước 2: Lấy order_id mới tạo để thểm vào Oderdetails
-            $result_select = $OrderModel->select_order_id();
-            $order_id = $result_select['order_id'];
+            $items = [];
+            for ($i = 0; $i < count($arr_product_id); $i++) {
+                $items[] = [
+                    'product_id' => (int)$arr_product_id[$i],
+                    'quantity' => (int)$arr_quantity[$i],
+                    'price' => (int)$arr_price[$i]
+                ];
+            }
+
+            $order_id = $OrderModel->create_order_with_stock_validation($user_id, $total, $address, $phone, $note, $items);
 
             // Gửi mail
             include_once "views/checkout/send-mail-order.php";
-
-            if(!empty($order_id)) {
-                // Insert orderdetails
-                for ($i = 0; $i < count($arr_product_id); $i++) {
-                    $product_id = $arr_product_id[$i];
-                    $quantity = $arr_quantity[$i];
-                    $price = $arr_price[$i];
-        
-                    $OrderModel->insert_orderdetails($order_id, $product_id, $quantity, $price);
-
-                    // Update số lượng của sản phẩm
-                    $ProductModel->update_quantity_product($product_id, $quantity);
-
-                    // Update số lượt bán
-                    $ProductModel->update_sell_quantity_product($product_id, $quantity);
-                }
-                // Sau khi đặt hàng xóa giỏ hàng
-                $OrderModel->delete_cart_by_user_id($user_id);
-                
-            }
         }else {
             $temp['address'] = $address;
             $temp['phone'] = $phone;
@@ -85,8 +70,7 @@ try {
 
     }
 } catch (Exception $e) {
-    $error_message = $e->getMessage();
-    echo $error_message;
+    $error['general'] = $e->getMessage();
 }
 
 
@@ -121,6 +105,11 @@ try {
             </div>
         </div>
         <form action="" method="post" class="checkout__form">
+            <?php
+                if (!empty(array_filter($error))) {
+                    echo $BaseModel->alert_error_success(implode('<br>', array_filter($error)), '');
+                }
+            ?>
             <div class="row">
                 <div class="col-lg-8">
                     <h5>CHI TIẾT THANH TOÁN</h5>

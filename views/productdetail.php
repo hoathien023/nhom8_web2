@@ -3,9 +3,13 @@
         $id_sp = $_GET['id_sp'];
         $id_danhmuc = $_GET['id_dm'];
 
-        $product_details = $ProductModel->update_views($id_sp);
+        $ProductModel->update_views($id_sp);
 
         $product_details = $ProductModel->select_products_by_id($id_sp);
+        if (!$product_details) {
+            header("Location: index.php?url=cua-hang");
+            exit();
+        }
         $similar_product = $ProductModel->select_products_similar($id_danhmuc);
         $name_catgoty = $CategoryModel->select_name_categories();
     } 
@@ -124,7 +128,7 @@
                                 <span class="text-dark">Số lượng</span>
                                 <div class="input-next-cart d-flex mx-4">
                                     <input type="button" value="-" class="button-minus" data-field="quantity">
-                                    <input type="number" step="1" max="50" value="1" name="product_quantity"
+                                    <input type="number" step="1" min="1" max="<?=$quantity?>" value="1" name="product_quantity"
                                         class="quantity-field-cart">
                                     <input type="button" value="+" class="button-plus" data-field="quantity">
                                 </div>

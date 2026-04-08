@@ -7,7 +7,7 @@
         }
 
         public function select_products_by_id($id) {
-            $sql = "SELECT * FROM products WHERE product_id = ?";
+            $sql = "SELECT * FROM products WHERE product_id = ? AND status = 1";
  
             return pdo_query_one($sql, $id);
         }
@@ -19,25 +19,25 @@
         }
 
         public function select_cate_in_product($product_id) {
-            $sql = "SELECT category_id FROM products WHERE product_id = ?";
+            $sql = "SELECT category_id FROM products WHERE product_id = ? AND status = 1";
  
             return pdo_query_one($sql, $product_id);
         }
 
         public function select_products_similar($id) {
-            $sql = "SELECT * FROM products WHERE category_id = ? ORDER BY product_id LIMIT 4";
+            $sql = "SELECT * FROM products WHERE category_id = ? AND status = 1 ORDER BY product_id LIMIT 4";
  
             return pdo_query($sql, $id);
         }
 
         public function search_products($query) {
-            $sql = "SELECT * FROM products WHERE name LIKE '%$query%' ";
+            $sql = "SELECT * FROM products WHERE name LIKE '%$query%' AND status = 1 ";
  
             return pdo_query($sql);
         }
 
         public function search_products_by_price($from_price, $to_price) {
-            $sql = "SELECT * FROM products WHERE sale_price BETWEEN '$from_price' AND '$to_price' ";
+            $sql = "SELECT * FROM products WHERE sale_price BETWEEN '$from_price' AND '$to_price' AND status = 1 ";
  
             return pdo_query($sql);
         }
@@ -55,7 +55,7 @@
         }
 
         public function select_products_by_cate($category_id) {
-            $sql = "SELECT * FROM products WHERE category_id = ?";
+            $sql = "SELECT * FROM products WHERE category_id = ? AND status = 1";
  
             return pdo_query($sql, $category_id);
         }
@@ -79,7 +79,7 @@
 
         // Đếm sản phẩm
         public function count_products() {
-            $sql = "SELECT product_id FROM products";
+            $sql = "SELECT product_id FROM products WHERE status = 1";
 
             return pdo_query($sql);
         }

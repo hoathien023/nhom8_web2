@@ -3,12 +3,9 @@
     $success = '';
     $error = '';
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_to_cart"])) {
-        $product_id = $_POST["product_id"];
-        $user_id = $_POST["user_id"];
-        $product_name = $_POST["name"];
-        $product_price = $_POST["price"];
-        $product_quantity = $_POST["product_quantity"];
-        $product_image = $_POST["image"];
+        $product_id = (int)$_POST["product_id"];
+        $user_id = (int)$_POST["user_id"];
+        $product_quantity = (int)$_POST["product_quantity"];
 
         if($product_quantity < 1 ) {
             
@@ -17,23 +14,45 @@
             exit();
         }
 
-        // Đếm số lượng sản trong giỏ hàng
-        $product = $CartModel->select_cart_by_id($product_id, $user_id);
-        // Kiểm tra xem có sản phẩm trong giỏ hàng hay không
-        if($product && is_array($product)) {
-            // Số lượng mới = số lượng hiện tại + số lượng vừa thêm
-            $current_quantity = $product['product_quantity'];
-            $new_quantity = $current_quantity + $product_quantity;
+        $product_info = $ProductModel->select_products_by_id($product_id);
+        if (!$product_info) {
+            $error = 'Sản phẩm không tồn tại hoặc đã bị ẩn.';
+        } elseif ((int)$product_info['quantity'] <= 0) {
+            $error = 'Sản phẩm đã hết hàng.';
+        } else {
+            $product_name = $product_info['name'];
+            $product_price = $product_info['sale_price'];
+            $product_image = $product_info['image'];
+            $max_quantity = (int)$product_info['quantity'];
 
-            // Cập nhật số lượng
-            $CartModel->update_cart($new_quantity, $product_id, $user_id);
-            $success .= 'Đã cập nhật số lượng cho sản phẩm: '.$product_name;
-        }
-        else {
-            $product_quantity = $product_quantity;
-            $CartModel->insert_cart($product_id, $user_id, $product_name, $product_price, $product_quantity, $product_image);
-            $success = "Đã thêm sản phẩm vào giỏ hàng";
-            
+            // Đếm số lượng sản trong giỏ hàng
+            $product = $CartModel->select_cart_by_id($product_id, $user_id);
+            // Kiểm tra xem có sản phẩm trong giỏ hàng hay không
+            if($product && is_array($product)) {
+                // Số lượng mới = số lượng hiện tại + số lượng vừa thêm
+                $current_quantity = (int)$product['product_quantity'];
+                $new_quantity = $current_quantity + $product_quantity;
+                if ($new_quantity > $max_quantity) {
+                    $new_quantity = $max_quantity;
+                    $error = 'Số lượng trong giỏ đã được giới hạn theo tồn kho hiện tại.';
+                }
+
+                // Cập nhật số lượng
+                $CartModel->update_cart($new_quantity, $product_id, $user_id);
+                if ($success === '') {
+                    $success .= 'Đã cập nhật số lượng cho sản phẩm: '.$product_name;
+                }
+            }
+            else {
+                if ($product_quantity > $max_quantity) {
+                    $product_quantity = $max_quantity;
+                    $error = 'Số lượng thêm vào giỏ đã được giới hạn theo tồn kho hiện tại.';
+                }
+                $CartModel->insert_cart($product_id, $user_id, $product_name, $product_price, $product_quantity, $product_image);
+                if ($success === '') {
+                    $success = "Đã thêm sản phẩm vào giỏ hàng";
+                }
+            }
         }
 
     }
@@ -47,15 +66,22 @@
         $index = 0; // Đếm số sản phẩm xóa
 
         for ($i = 0; $i < count($product_id); $i++) {
-            $id = $product_id[$i];
-            $quantity = $new_quantity[$i];
+            $id = (int)$product_id[$i];
+            $quantity = (int)$new_quantity[$i];
+            $product_info = $ProductModel->select_products_by_id($id);
             
             if ($quantity <= 0) {
                 // Nếu số lượng >=0 xóa sản phẩm trong giỏ hàng     
                 $CartModel->delete_product_in_cart($id, $user_id);
 
                 $index += 1;
-            } elseif($quantity > 0) {
+            } elseif(!$product_info || (int)$product_info['quantity'] <= 0) {
+                $CartModel->delete_product_in_cart($id, $user_id);
+                $index += 1;
+            } else {
+                if ($quantity > (int)$product_info['quantity']) {
+                    $quantity = (int)$product_info['quantity'];
+                }
                 $CartModel->update_cart($quantity, $id, $user_id);
                 
             }
@@ -80,6 +106,25 @@
 <?php 
     if(isset($_SESSION['user'])) {
         $user_id = $_SESSION['user']['id'];
+        $list_carts = $CartModel->select_all_carts($user_id);
+        $count_carts = count($CartModel->count_cart($user_id));
+
+        // Đồng bộ giỏ với trạng thái/tồn kho hiện tại của sản phẩm.
+        foreach ($list_carts as $item) {
+            $product_info = $ProductModel->select_products_by_id($item['product_id']);
+            if (!$product_info || (int)$product_info['quantity'] <= 0) {
+                $CartModel->delete_product_in_cart($item['product_id'], $user_id);
+                continue;
+            }
+
+            $valid_qty = (int)$item['product_quantity'];
+            if ($valid_qty > (int)$product_info['quantity']) {
+                $valid_qty = (int)$product_info['quantity'];
+            }
+
+            $CartModel->update_cart($valid_qty, $item['product_id'], $user_id);
+        }
+
         $list_carts = $CartModel->select_all_carts($user_id);
         $count_carts = count($CartModel->count_cart($user_id));
     }
