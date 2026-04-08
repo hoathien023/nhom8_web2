@@ -21,13 +21,13 @@
     // Giá cao và thấp nhất của sản phẩm
     $min_max_price = $ProductModel->get_min_max_prices();
     $min_filter_price = 0;
-    $max_filter_price = 50000000;
+    $max_filter_price = 10000000;
 
     if ($from_price !== null) {
-        $from_price = min($from_price, 50000000);
+        $from_price = min($from_price, 10000000);
     }
     if ($to_price !== null) {
-        $to_price = min($to_price, 50000000);
+        $to_price = min($to_price, 10000000);
     }
 
     if ($from_price !== null && $to_price !== null && $to_price < $from_price) {
@@ -137,12 +137,10 @@
                                         <div class="price-input">
                                             <p class="price-label">Khoảng giá</p>
                                             <div class="price-range-box">
-                                                <input type="text" name="from_price" id="minamount_display" value="<?=$from_price !== null ? number_format($from_price) : ''?>" placeholder="0">
+                                                <input type="text" name="from_price" id="minamount" value="<?=$from_price !== null ? number_format($from_price) : ''?>" placeholder="0">
                                                 <span class="price-separator">đến</span>
-                                                <input type="text" name="to_price" id="maxamount_display" value="<?=$to_price !== null ? number_format($to_price) : ''?>" placeholder="0">
+                                                <input type="text" name="to_price" id="maxamount" value="<?=$to_price !== null ? number_format($to_price) : ''?>" placeholder="0">
                                             </div>
-                                            <input type="hidden" id="minamount" value="<?=$from_price !== null ? $from_price : $min_filter_price?>">
-                                            <input type="hidden" id="maxamount" value="<?=$to_price !== null ? $to_price : $max_filter_price?>">
                                             <input type="submit" class="filter-price btn-filter-price" value="LỌC KẾT QUẢ">
                                         </div>
                                     </form>
@@ -307,16 +305,18 @@
 }
 
 .price-range-box input {
-    width: calc(50% - 22px);
+    width: calc(50% - 18px);
     border: none;
     outline: none;
     background: transparent;
     text-align: center;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     letter-spacing: 0;
     min-width: 0;
     overflow: visible;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 .price-separator {
@@ -336,75 +336,58 @@
     function formatNumberInput(value) {
         var digits = String(value || '').replace(/[^\d]/g, '');
         if (!digits) return '';
-        var numberValue = Math.min(parseInt(digits, 10), 50000000);
+        var numberValue = Math.min(parseInt(digits, 10), 10000000);
         return numberValue.toLocaleString('en-US');
     }
 
-    function snapToStep(value, step) {
-        var numberValue = parseInt(value, 10);
-        if (isNaN(numberValue)) return '';
-        return String(Math.round(numberValue / step) * step);
+    function toNumber(value) {
+        var digits = String(value || '').replace(/[^\d]/g, '');
+        if (!digits) return '';
+        return String(Math.min(parseInt(digits, 10), 10000000));
+    }
+
+    function normalizeAndValidate(minInput, maxInput) {
+        var minVal = toNumber(minInput.value);
+        var maxVal = toNumber(maxInput.value);
+
+        if (minVal !== '' && maxVal !== '' && parseInt(maxVal, 10) < parseInt(minVal, 10)) {
+            maxVal = minVal;
+        }
+
+        minInput.value = minVal === '' ? '' : Number(minVal).toLocaleString('en-US');
+        maxInput.value = maxVal === '' ? '' : Number(maxVal).toLocaleString('en-US');
     }
 
     function normalizePriceInputs() {
         var minInput = document.getElementById('minamount');
         var maxInput = document.getElementById('maxamount');
-        var minDisplay = document.getElementById('minamount_display');
-        var maxDisplay = document.getElementById('maxamount_display');
-        if (!minInput || !maxInput || !minDisplay || !maxDisplay) return;
-        var isTypingMin = false;
-        var isTypingMax = false;
+        if (!minInput || !maxInput) return;
 
-        function digitsOnly(value) {
-            var digits = String(value || '').replace(/[^\d]/g, '');
-            if (!digits) return '';
-            var clamped = Math.min(parseInt(digits, 10), 50000000);
-            return snapToStep(clamped, 5000);
-        }
+        minInput.value = formatNumberInput(minInput.value);
+        maxInput.value = formatNumberInput(maxInput.value);
 
-        function syncFromSliderToDisplay() {
-            minInput.value = digitsOnly(minInput.value);
-            maxInput.value = digitsOnly(maxInput.value);
-            if (!isTypingMin) {
-                minDisplay.value = formatNumberInput(minInput.value);
-            }
-            if (!isTypingMax) {
-                maxDisplay.value = formatNumberInput(maxInput.value);
-            }
-        }
-
-        function syncFromDisplayToSlider() {
-            minInput.value = digitsOnly(minDisplay.value);
-            maxInput.value = digitsOnly(maxDisplay.value);
-            if (minInput.value !== '' && maxInput.value !== '' && parseInt(maxInput.value, 10) < parseInt(minInput.value, 10)) {
-                maxInput.value = minInput.value;
-            }
-            minDisplay.value = formatNumberInput(minDisplay.value);
-            maxDisplay.value = formatNumberInput(maxDisplay.value);
-        }
-
-        syncFromSliderToDisplay();
-
-        minDisplay.addEventListener('focus', function() { isTypingMin = true; });
-        maxDisplay.addEventListener('focus', function() { isTypingMax = true; });
-        minDisplay.addEventListener('blur', function() { isTypingMin = false; syncFromDisplayToSlider(); });
-        maxDisplay.addEventListener('blur', function() { isTypingMax = false; syncFromDisplayToSlider(); });
-
-        minDisplay.addEventListener('input', function() {
-            syncFromDisplayToSlider();
+        minInput.addEventListener('input', function() {
+            minInput.value = formatNumberInput(minInput.value);
         });
 
-        maxDisplay.addEventListener('input', function() {
-            syncFromDisplayToSlider();
+        maxInput.addEventListener('input', function() {
+            maxInput.value = formatNumberInput(maxInput.value);
         });
 
-        // Khi kéo slider script cũ sẽ ghi vào hidden inputs -> đồng bộ lại ra ô hiển thị.
-        setInterval(syncFromSliderToDisplay, 200);
+        minInput.addEventListener('blur', function() {
+            normalizeAndValidate(minInput, maxInput);
+        });
 
-        var form = minDisplay.closest('form');
+        maxInput.addEventListener('blur', function() {
+            normalizeAndValidate(minInput, maxInput);
+        });
+
+        var form = minInput.closest('form');
         if (form) {
             form.addEventListener('submit', function() {
-                syncFromDisplayToSlider();
+                normalizeAndValidate(minInput, maxInput);
+                minInput.value = toNumber(minInput.value);
+                maxInput.value = toNumber(maxInput.value);
             });
         }
     }

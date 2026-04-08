@@ -14,7 +14,7 @@
     $list_catgories = $CategoryModel->select_all_categories();
     $min_max_price = $ProductModel->get_min_max_prices();
     $min_filter_price = 0;
-    $max_filter_price = 50000000;
+    $max_filter_price = 10000000;
 ?>
 
 <!-- Breadcrumb Begin -->
@@ -91,12 +91,10 @@
                                         <div class="price-input">
                                             <p>Khoảng giá</p>
                                             <div class="price-range-box">
-                                                <input type="text" id="minamount_display" name="from_price" placeholder="<?=number_format($min_filter_price)?>">
+                                                <input type="text" id="minamount" name="from_price" placeholder="<?=number_format($min_filter_price)?>">
                                                 <span class="price-separator">đến</span>
-                                                <input type="text" id="maxamount_display" name="to_price" placeholder="<?=number_format($max_filter_price)?>">
+                                                <input type="text" id="maxamount" name="to_price" placeholder="<?=number_format($max_filter_price)?>">
                                             </div>
-                                            <input type="hidden" id="minamount" value="<?=$min_filter_price?>">
-                                            <input type="hidden" id="maxamount" value="<?=$max_filter_price?>">
                                             <input type="submit" class="filter-price btn-filter-price" value="LỌC GIÁ">
                                         </div>
                                     </form>
@@ -240,13 +238,15 @@
 }
 
 .price-range-box input {
-    width: calc(50% - 22px);
+    width: calc(50% - 18px);
     border: none;
     outline: none;
     background: transparent;
     text-align: center;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 .price-separator {
@@ -262,50 +262,47 @@
     function formatNumberInput(value) {
         var digits = String(value || '').replace(/[^\d]/g, '');
         if (!digits) return '';
-        var numberValue = Math.min(parseInt(digits, 10), 50000000);
+        var numberValue = Math.min(parseInt(digits, 10), 10000000);
         return numberValue.toLocaleString('en-US');
     }
 
-    function digitsOnly(value) {
+    function toNumber(value) {
         var digits = String(value || '').replace(/[^\d]/g, '');
         if (!digits) return '';
-        return String(Math.min(parseInt(digits, 10), 50000000));
+        return String(Math.min(parseInt(digits, 10), 10000000));
+    }
+
+    function normalizeAndValidate(minInput, maxInput) {
+        var minVal = toNumber(minInput.value);
+        var maxVal = toNumber(maxInput.value);
+        if (minVal !== '' && maxVal !== '' && parseInt(maxVal, 10) < parseInt(minVal, 10)) {
+            maxVal = minVal;
+        }
+        minInput.value = minVal === '' ? '' : Number(minVal).toLocaleString('en-US');
+        maxInput.value = maxVal === '' ? '' : Number(maxVal).toLocaleString('en-US');
     }
 
     function normalizePriceInputs() {
         var minInput = document.getElementById('minamount');
         var maxInput = document.getElementById('maxamount');
-        var minDisplay = document.getElementById('minamount_display');
-        var maxDisplay = document.getElementById('maxamount_display');
-        if (!minInput || !maxInput || !minDisplay || !maxDisplay) return;
-        var isTypingMin = false;
-        var isTypingMax = false;
+        if (!minInput || !maxInput) return;
 
-        function syncFromSliderToDisplay() {
-            minInput.value = digitsOnly(minInput.value);
-            maxInput.value = digitsOnly(maxInput.value);
-            if (!isTypingMin) minDisplay.value = formatNumberInput(minInput.value);
-            if (!isTypingMax) maxDisplay.value = formatNumberInput(maxInput.value);
+        minInput.value = formatNumberInput(minInput.value);
+        maxInput.value = formatNumberInput(maxInput.value);
+
+        minInput.addEventListener('input', function() { minInput.value = formatNumberInput(minInput.value); });
+        maxInput.addEventListener('input', function() { maxInput.value = formatNumberInput(maxInput.value); });
+        minInput.addEventListener('blur', function() { normalizeAndValidate(minInput, maxInput); });
+        maxInput.addEventListener('blur', function() { normalizeAndValidate(minInput, maxInput); });
+
+        var form = minInput.closest('form');
+        if (form) {
+            form.addEventListener('submit', function() {
+                normalizeAndValidate(minInput, maxInput);
+                minInput.value = toNumber(minInput.value);
+                maxInput.value = toNumber(maxInput.value);
+            });
         }
-
-        function syncFromDisplayToSlider() {
-            minInput.value = digitsOnly(minDisplay.value);
-            maxInput.value = digitsOnly(maxDisplay.value);
-            if (minInput.value !== '' && maxInput.value !== '' && parseInt(maxInput.value, 10) < parseInt(minInput.value, 10)) {
-                maxInput.value = minInput.value;
-            }
-            minDisplay.value = formatNumberInput(minInput.value);
-            maxDisplay.value = formatNumberInput(maxInput.value);
-        }
-
-        syncFromSliderToDisplay();
-        minDisplay.addEventListener('focus', function() { isTypingMin = true; });
-        maxDisplay.addEventListener('focus', function() { isTypingMax = true; });
-        minDisplay.addEventListener('blur', function() { isTypingMin = false; syncFromDisplayToSlider(); });
-        maxDisplay.addEventListener('blur', function() { isTypingMax = false; syncFromDisplayToSlider(); });
-        minDisplay.addEventListener('input', syncFromDisplayToSlider);
-        maxDisplay.addEventListener('input', syncFromDisplayToSlider);
-        setInterval(syncFromSliderToDisplay, 200);
     }
 
     if (document.readyState === 'loading') {
