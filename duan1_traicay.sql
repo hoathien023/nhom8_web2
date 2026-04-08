@@ -390,11 +390,14 @@ CREATE TABLE `products` (
   `product_id` int NOT NULL,
   `category_id` int NOT NULL,
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `unit` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'Kg',
   `image` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `quantity` int NOT NULL,
   `sell_quantity` int NOT NULL DEFAULT '0',
   `price` int NOT NULL,
   `sale_price` int NOT NULL,
+  `cost_price` decimal(12,3) NOT NULL DEFAULT '0.000',
+  `profit_rate` decimal(5,2) NOT NULL DEFAULT '0.00',
   `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `views` int NOT NULL DEFAULT '0',
   `details` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
@@ -488,6 +491,37 @@ INSERT INTO `warehouse` (`id`, `name`, `price`, `quantity`, `sell`, `created_at`
 (17, 'Cam vàng Úc', 100000, 100, 0, '2025-11-06 22:57:58'),
 (18, 'Dưa hấu không hạt', 180000, 120, 0, '2025-11-06 22:58:26'),
 (19, 'Nho đen Mỹ', 300000, 120, 0, '2025-11-06 22:58:47');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `warehouse_receipts`
+--
+
+CREATE TABLE `warehouse_receipts` (
+  `receipt_id` int NOT NULL,
+  `receipt_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `import_date` date NOT NULL,
+  `note` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '0: nhap, 1: hoan thanh',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `warehouse_receipt_items`
+--
+
+CREATE TABLE `warehouse_receipt_items` (
+  `item_id` int NOT NULL,
+  `receipt_id` int NOT NULL,
+  `product_id` int NOT NULL,
+  `import_price` int NOT NULL,
+  `import_quantity` int NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Indexes for dumped tables
@@ -651,6 +685,18 @@ ALTER TABLE `warehouse`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
+-- AUTO_INCREMENT for table `warehouse_receipts`
+--
+ALTER TABLE `warehouse_receipts`
+  MODIFY `receipt_id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `warehouse_receipt_items`
+--
+ALTER TABLE `warehouse_receipt_items`
+  MODIFY `item_id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- Constraints for dumped tables
 --
 
@@ -692,6 +738,23 @@ ALTER TABLE `posts`
 --
 ALTER TABLE `products`
   ADD CONSTRAINT `fk_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`);
+
+--
+-- Constraints for table `warehouse_receipts`
+--
+ALTER TABLE `warehouse_receipts`
+  ADD PRIMARY KEY (`receipt_id`),
+  ADD UNIQUE KEY `receipt_code` (`receipt_code`);
+
+--
+-- Constraints for table `warehouse_receipt_items`
+--
+ALTER TABLE `warehouse_receipt_items`
+  ADD PRIMARY KEY (`item_id`),
+  ADD KEY `idx_receipt_items_product` (`product_id`),
+  ADD KEY `idx_receipt_items_receipt` (`receipt_id`),
+  ADD CONSTRAINT `fk_receipt_items_receipt` FOREIGN KEY (`receipt_id`) REFERENCES `warehouse_receipts` (`receipt_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_receipt_items_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

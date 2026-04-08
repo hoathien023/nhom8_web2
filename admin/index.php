@@ -34,6 +34,9 @@
             case 'cap-nhat-san-pham':
                 require_once "san-pham/edit.php";   
                 break;
+            case 'quan-ly-gia-ban':
+                require_once "gia-ban/list.php";
+                break;
             case 'thung-rac-san-pham':
                 require_once "san-pham/recycle-bin.php";   
                 break;

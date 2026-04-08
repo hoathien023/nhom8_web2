@@ -42,6 +42,65 @@
             return pdo_query($sql);
         }
 
+        public function search_products_advanced($query, $category_id, $from_price, $to_price, $page, $perPage) {
+            $page = max(1, (int)$page);
+            $perPage = max(1, (int)$perPage);
+            $start = ($page - 1) * $perPage;
+
+            $sql = "SELECT * FROM products WHERE status = 1";
+            $args = array();
+
+            if ($query !== '') {
+                $sql .= " AND name LIKE ?";
+                $args[] = "%" . $query . "%";
+            }
+
+            if ((int)$category_id > 0) {
+                $sql .= " AND category_id = ?";
+                $args[] = (int)$category_id;
+            }
+
+            if ($from_price !== null) {
+                $sql .= " AND sale_price >= ?";
+                $args[] = (int)$from_price;
+            }
+
+            if ($to_price !== null) {
+                $sql .= " AND sale_price <= ?";
+                $args[] = (int)$to_price;
+            }
+
+            $sql .= " ORDER BY product_id DESC LIMIT $start, $perPage";
+            return pdo_query($sql, ...$args);
+        }
+
+        public function count_products_advanced($query, $category_id, $from_price, $to_price) {
+            $sql = "SELECT COUNT(*) AS total FROM products WHERE status = 1";
+            $args = array();
+
+            if ($query !== '') {
+                $sql .= " AND name LIKE ?";
+                $args[] = "%" . $query . "%";
+            }
+
+            if ((int)$category_id > 0) {
+                $sql .= " AND category_id = ?";
+                $args[] = (int)$category_id;
+            }
+
+            if ($from_price !== null) {
+                $sql .= " AND sale_price >= ?";
+                $args[] = (int)$from_price;
+            }
+
+            if ($to_price !== null) {
+                $sql .= " AND sale_price <= ?";
+                $args[] = (int)$to_price;
+            }
+
+            return pdo_query_one($sql, ...$args);
+        }
+
         public function get_min_max_prices() {
             $sql = "SELECT MIN(sale_price) AS min_price, MAX(sale_price) AS max_price FROM products WHERE status = 1";
         
@@ -58,6 +117,28 @@
             $sql = "SELECT * FROM products WHERE category_id = ? AND status = 1";
  
             return pdo_query($sql, $category_id);
+        }
+
+        public function select_products_by_cate_paginated($category_id, $page, $perPage) {
+            $page = max(1, (int)$page);
+            $perPage = max(1, (int)$perPage);
+            $start = ($page - 1) * $perPage;
+
+            $sql = "SELECT * 
+                    FROM products 
+                    WHERE category_id = ? AND status = 1
+                    ORDER BY product_id DESC
+                    LIMIT $start, $perPage";
+
+            return pdo_query($sql, $category_id);
+        }
+
+        public function count_products_by_cate($category_id) {
+            $sql = "SELECT COUNT(*) AS total 
+                    FROM products 
+                    WHERE category_id = ? AND status = 1";
+
+            return pdo_query_one($sql, $category_id);
         }
 
         function select_list_products($page, $perPage) {

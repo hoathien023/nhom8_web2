@@ -66,13 +66,16 @@
         if ((int)$receipt['status'] === 1) {
             $error = 'Phiếu đã hoàn thành trước đó.';
         } else {
-            $items = $WarehousemModel->select_receipt_items($receipt_id);
-            foreach ($items as $item) {
-                $ProductModel->apply_import_item($item['product_id'], $item['import_quantity'], $item['import_price']);
+            try {
+                $done = $WarehousemModel->complete_receipt($receipt_id, $ProductModel);
+                if ($done) {
+                    header("Location: index.php?quanli=sua-hoa-don&id=" . $receipt_id . "&done=1");
+                    exit();
+                }
+                $error = 'Không thể hoàn thành phiếu nhập.';
+            } catch (Exception $e) {
+                $error = $e->getMessage();
             }
-            $WarehousemModel->complete_receipt($receipt_id);
-            header("Location: index.php?quanli=sua-hoa-don&id=" . $receipt_id . "&done=1");
-            exit();
         }
     }
 

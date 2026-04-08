@@ -4,18 +4,23 @@
 
     $error = array(
         'name' => '',
+        'unit' => '',
         'image' => '',
         'quantity' => '',
-        'price' => '',
-        'sale_price' => '',   
+        'cost_price' => '',
+        'profit_rate' => '',
+        'sale_price' => '',
     );
 
     $temp = array(
         'name' => '',
         'image' => '',
+        'unit' => 'Kg',
         'quantity' => '',
+        'cost_price' => '',
+        'profit_rate' => '20',
         'price' => '',
-        'sale_price' => '',   
+        'sale_price' => '',
         'status' => 1,
         'details' => '',   
         'short_description' => '',   
@@ -25,15 +30,18 @@
 
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["themsanpham"])) {
         $name = trim($_POST["name"]);
+        $unit = trim($_POST["unit"]);
         $category_id = $_POST["category_id"];
         $image = $_FILES["image"]['name'];
 
         $quantity = $_POST["quantity"];
-        $price = $_POST["price"];
-        $sale_price = $_POST["sale_price"];
+        $cost_price = $_POST["cost_price"];
+        $profit_rate = $_POST["profit_rate"];
+        $sale_price = isset($_POST["sale_price"]) ? $_POST["sale_price"] : '';
         $status = isset($_POST["status"]) ? (int)$_POST["status"] : 1;
         $details = isset($_POST["details"]) ? $_POST["details"] : '';
         $short_description = isset($_POST["short_description"]) ? $_POST["short_description"] : '';
+        $price = $ProductModel->calculate_sale_price_from_cost($cost_price, $profit_rate);
 
         
         
@@ -53,17 +61,27 @@
             $error['name']= 'Tên sản phẩm tối đa 255 ký tự';
         }
 
-        if($price <0 ) {
-            $error['price']= 'Giá bán thường phải lớn hơn 0';
+        if(empty($unit)) {
+            $error['unit']= 'Đơn vị tính không được để trống';
+        }
+
+        if(strlen($unit) > 50) {
+            $error['unit']= 'Đơn vị tính tối đa 50 ký tự';
+        }
+
+        if($cost_price <0 ) {
+            $error['cost_price']= 'Giá vốn phải lớn hơn 0';
         }
         if($quantity <0 ) {
             $error['quantity']= 'Số lượng phải lớn hơn 0';
         }
-        if($sale_price <0 ) {
-            $error['sale_price']= 'Giá tiền khuyến mãi phải lớn hơn 0';
+        if($profit_rate < 0 ) {
+            $error['profit_rate']= 'Tỉ lệ lợi nhuận phải lớn hơn hoặc bằng 0';
         }
-        if($sale_price > $price ) {
-            $error['sale_price'] = 'Giá khuyến mãi không được lớn hơn giá bán thường';
+        if($sale_price === '' || $sale_price < 0 ) {
+            $error['sale_price']= 'Giá khuyến mãi phải lớn hơn hoặc bằng 0';
+        } elseif ($sale_price > $price) {
+            $error['sale_price']= 'Giá khuyến mãi không được lớn hơn giá thường';
         }
 
         if(empty($image)) {
@@ -80,7 +98,7 @@
                 }
 
                 try {
-                    $ProductModel->insert_product($category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description, $status);
+                    $ProductModel->insert_product($category_id, $name, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status);
                     $success = 'Thêm sản phẩm thành công';
                 } catch (Exception $e) {
                     $error_message = $e->getMessage();
@@ -91,6 +109,9 @@
 
         }else {
             $temp['name'] = $name;
+            $temp['unit'] = $unit;
+            $temp['cost_price'] = $cost_price;
+            $temp['profit_rate'] = $profit_rate;
             $temp['price'] = $price;
             $temp['sale_price'] = $sale_price;
             $temp['quantity'] = $quantity;
@@ -127,8 +148,7 @@
 
                 <label for="floatingInput">Giá bán thường (đ)</label>
                 <div class="form-floating mb-3">
-                    <input type="number" name="price" value="<?=$temp['price']?>" class="form-control" id="floatingInput" placeholder="Giá bán thường (đ)">
-                    <span class="text-danger" ><?=$error['price']?></span>
+                    <input type="number" value="<?=$temp['price']?>" class="form-control" id="floatingInput" placeholder="Giá bán thường (đ)" readonly>
                 </div>
 
                 <label for="floatingInput">Giá khuyến mãi (đ)</label>
@@ -136,10 +156,26 @@
                     <input type="number" name="sale_price" value="<?=$temp['sale_price']?>" class="form-control" id="floatingInput" placeholder="Giá khuyến mãi (đ)">
                     <span class="text-danger" ><?=$error['sale_price']?></span>
                 </div>
+                <small class="text-muted d-block mb-2">Giá bán tự tính = Giá vốn x (1 + % lợi nhuận).</small>
                 <label for="floatingInput">Số lượng (nhập số)</label>
                 <div class="form-floating mb-3">
                     <input type="number" value="<?=$temp['quantity']?>" name="quantity" class="form-control" id="floatingInput" placeholder="Số lượng">
                     <span class="text-danger" ><?=$error['quantity']?></span>
+                </div>
+                <label for="floatingInput">Giá vốn (đ)</label>
+                <div class="form-floating mb-3">
+                    <input type="number" name="cost_price" value="<?=$temp['cost_price']?>" class="form-control" id="floatingInput" placeholder="Giá vốn">
+                    <span class="text-danger" ><?=$error['cost_price']?></span>
+                </div>
+                <label for="floatingInput">Tỉ lệ lợi nhuận (%)</label>
+                <div class="form-floating mb-3">
+                    <input type="number" name="profit_rate" value="<?=$temp['profit_rate']?>" class="form-control" id="floatingInput" placeholder="Tỉ lệ lợi nhuận">
+                    <span class="text-danger" ><?=$error['profit_rate']?></span>
+                </div>
+                <label for="floatingInput">Đơn vị tính</label>
+                <div class="form-floating mb-3">
+                    <input type="text" name="unit" value="<?=$temp['unit']?>" class="form-control" id="floatingInput" placeholder="Đơn vị tính">
+                    <span class="text-danger" ><?=$error['unit']?></span>
                 </div>
                 <label for="text-dark">Mô tả ngắn</label>
                 <div class="form-floating mb-3">

@@ -17,6 +17,8 @@
         $order_status = 'Đang giao';
     }elseif($status == 4) {
         $order_status = 'Giao thành công';
+    }elseif($status == 5) {
+        $order_status = 'Đã hủy';
     }
 
     $date_formated = $BaseModel->date_format($order_date, '');
@@ -80,6 +82,8 @@
                                             return 'Đang giao';
                                         case 4:
                                             return 'Giao thành công';
+                                        case 5:
+                                            return 'Đã hủy';
                                         default:
                                             return 'Không xác định';
                                     }
@@ -90,7 +94,7 @@
                                 <div class="form-floating mb-3">
                                     <select name="status" class="form-select" id="floatingSelect" aria-label="Floating label select example" >
                                         <?php
-                                        $status_options = [1, 2, 3, 4];
+                                        $status_options = [1, 2, 3, 4, 5];
                                         foreach ($status_options as $option_value) {
                                             $selected = ($option_value == $status) ? 'selected' : '';
                                             echo "<option value='$option_value' $selected>";

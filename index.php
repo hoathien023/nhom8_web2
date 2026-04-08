@@ -27,6 +27,17 @@ define('BASE_URL', 'index.php?url=');
 define('URL_MOMO', 'http://localhost/DUAN_TRAICAY/cam-on');
 define('URL_ORDER', 'http://localhost/DUAN_TRAICAY/don-hang');
 
+// Đồng bộ trạng thái khóa tài khoản theo DB cho mọi request phía user.
+if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
+    $current_user = $CustomerModel->get_user_by_id((int)$_SESSION['user']['id']);
+    if (!$current_user || (int)$current_user['active'] !== 1) {
+        unset($_SESSION['user']);
+        $_SESSION['locked_message'] = 'Tài khoản đã bị khóa';
+        header("Location: index.php?url=dang-nhap");
+        exit();
+    }
+}
+
 require_once "components/head.php";
 require_once "components/header.php";
 

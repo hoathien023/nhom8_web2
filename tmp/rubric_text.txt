@@ -1,0 +1,160 @@
+﻿TRÆ¯á»œNG Äáº I Há»ŒC SÃ€I GÃ’N
+KHOA: CÃ”NG NGHá»† THÃ”NG TIN
+Cá»˜NG HÃ’A XÃƒ Há»˜I CHá»¦ NGHÄ¨A VIá»†T NAM
+Äá»™c láº­p â€“ Tá»± do â€“ Háº¡nh phÃºc
+BIÃŠN Báº¢N ÄÃNH GIÃ Äá»’ ÃN CUá»I Ká»²
+Há»c pháº§n
+:
+Láº­p trÃ¬nh Web vÃ  á»©ng dá»¥ng nÃ¢ng cao
+MÃ£ HP
+: 
+841464
+NhÃ³m 
+lá»›p
+:
+â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦â€¦
+Äiá»ƒm sá»‘
+Äiá»ƒm chá»¯
+Giáº£ng viÃªn
+Ghi chÃº
+NhÃ³m
+: 
+TÃªn Ä‘á» tÃ i
+:
+ThÃ nh viÃªn nhÃ³m:
+STT
+MSSV
+Há» tÃªn
+Khá»‘i lÆ°á»£ng 
+CV
+trÃªn tá»•ng 100 
+(%)
+Ghi chÃº
+1
+2
+3
+4
+5
+YÃªu cáº§u:
+Thá»±c hiá»‡n website Ä‘á»™ng sá»­ dá»¥ng JS, PHP vÃ  CSDL mySQL giá»›i thiá»‡u sáº£n pháº©m theo Ä‘á» tÃ i Ä‘Ã£ Ä‘Äƒng kÃ­, cho phÃ©p sá»­ dá»¥ng giao diá»‡n web cÃ³ sáºµn (khÃ´ng cáº§n tá»± thiáº¿t káº¿)
+vá»›i cÃ¡c chá»©c nÄƒng 
+cáº§n cÃ³ nhÆ° 
+sau:
+Â 
+YÃªu cáº§u
+Äiá»ƒm
+Cháº¥m
+I.
+CÃ¡c chá»©c nÄƒng cho ngÆ°á»i dÃ¹ng cuá»‘i (end-user)  (4.0 Ä‘iá»ƒm)
+Â 
+Hiá»ƒn thá»‹ sáº£n pháº©m
+ (cÃ³ phÃ¢n trang)
+ theo phÃ¢n loáº¡i
+, káº¿t quáº£ tÃ¬m kiáº¿m cÆ¡ báº£n theo tÃªn sáº£n pháº©m, xem chi tiáº¿t sáº£n pháº©m (thÃ´ng tin pháº£i phÃ¹ há»£p vá»›i sáº£n pháº©m bÃ¡n)
+1.0
+TÃ¬m kiáº¿m
+ nÃ¢ng cao
+ (káº¿t quáº£ tÃ¬m kiáº¿m cÃ³ phÃ¢n trang)
+ theo tÃªn sáº£n pháº©m, cÃ³ chá»n phÃ¢n loáº¡i vÃ  khoáº£ng giÃ¡ bÃ¡n (káº¿t há»£p nhiá»u tiÃªu chÃ­ trong 1 thao tÃ¡c tÃ¬m kiáº¿m)
+1.0
+CÃ¡c chá»©c nÄƒng cho ngÆ°á»i dÃ¹ng
+1.0
+ÄÄƒng kiÌ: cho phÃ©p ngÆ°á»i dÃ¹ng Ä‘Äƒng kÃ­ tÃ i khoáº£n KhÃ¡ch hÃ ng, khi Ä‘Äƒng kÃ­ pháº£i nháº­p Ä‘áº§y Ä‘á»§ Ä‘á»‹a chá»‰ giao hÃ ng máº·c Ä‘á»‹nh
+ÄÄƒng nhÃ¢Ì£p / Ä‘Äƒng xuÃ¢Ìt (hiá»ƒn thá»‹ thÃ´ng tin tÃ i khoáº£n Ä‘ang Ä‘Äƒng nháº­p)
+KhÃ¡ch hÃ ng chá»n mua sáº£n pháº©m báº±ng giá» hÃ ng (khÃ¡ch hÃ ng pháº£i Ä‘Äƒng nháº­p má»›i cÃ³ thá»ƒ sá»­ dá»¥ng)
+CÃ¡c chá»©c nÄƒng mua hÃ ng:
+1.0
+Cho phÃ©p thÃªm bá»›t sáº£n pháº©m + sá»‘ lÆ°á»£ng sáº£n pháº©m trong giá» hÃ ng.
+Cho phÃ©p chá»n Ä‘á»‹a chá»‰ tá»« tÃ i khoáº£n hoáº·c nháº­p Ä‘á»‹a chá»‰ giao hÃ ng má»›i (thiáº¿t káº¿ cÃ¡c control nháº­p liá»‡u Ä‘á»§ vÃ  Ä‘Ãºng cho tá»«ng trÆ°á»ng há»£p)
+Cho phÃ©p chá»n thanh toÃ¡n tiá»n máº·t, chuyá»ƒn khoáº£n (hiá»ƒn thá»‹ thÃ´ng tin chuyá»ƒn khoáº£n) hoáº·c thanh toÃ¡n trá»±c tuyáº¿n (nhÆ°ng khi chá»n thanh toÃ¡n trá»±c tuyáº¿n thÃ¬ chÆ°a cáº§n xá»­ lÃ½ tiáº¿p).
+Cho ngÆ°á»i mua xem tÃ³m táº¯t Ä‘Æ¡n Ä‘áº·t hÃ ng khi káº¿t thÃºc quÃ¡ trÃ¬nh mua.
+KhÃ¡ch hÃ ng 
+cÃ³ thá»ƒ 
+xem láº¡i lá»‹ch sá»­ mua hÃ ng cá»§a tÃ i khoáº£n Ä‘ang Ä‘Äƒng nháº­p (Ä‘Æ¡n hÃ ng mua gáº§n nháº¥t hiá»ƒn thá»‹ á»Ÿ trÃªn)
+II.
+CÃ¡c chá»©c nÄƒng cho ngÆ°á»i quáº£n trá»‹ web (web-admin) (6.0 Ä‘iá»ƒm)
+Â 
+Â 
+Giao diá»‡n cho ngÆ°á»i quáº£n trá»‹
+ vÃ  chá»©c nÄƒng quáº£n lÃ½ ngÆ°á»i dÃ¹ng
+1.0
+Â 
+ÄÄƒng nháº­p báº±ng URL (khÃ´ng dÃ¹ng chung giao diá»‡n vá»›i ngÆ°á»i mua)
+[-0.25]
+Hiá»ƒn thá»‹ thÃ´ng tin Ä‘Äƒng nháº­p cá»§a tÃ i khoáº£n quáº£n trá»‹ vÃ  danh má»¥c chá»©c nÄƒng cho ngÆ°á»i quáº£n trá»‹
+Quáº£n lÃ½ ngÆ°á»i dÃ¹ng (thÃªm tÃ i khoáº£n, khá»Ÿi táº¡o (reset) máº­t kháº©u; khoÃ¡ tÃ i khoáº£n
+)
+Quáº£n lÃ½ sáº£n pháº©m 
+vÃ  phÃ¢n loáº¡i
+1.5
+ThÃªm phÃ¢n loáº¡i sáº£n pháº©m (lÆ°u Ã½ cÃ¡c dá»¯ liá»‡u cá»§a loáº¡i sáº£n pháº©m)
+ThÃªm sáº£n pháº©m gá»“m nhá»¯ng thÃ´ng tin cÆ¡ báº£n (mÃ£, tÃªn, loáº¡i, mÃ´ táº£, Ä‘Æ¡n vá»‹ tÃ­nh, sá»‘ lÆ°á»£ng tá»“n ban Ä‘áº§u, giÃ¡ vá»‘n, hÃ¬nh áº£nh, tá»‰ lá»‡ lá»£i nhuáº­n mong muá»‘n, hiá»‡n tráº¡ng (áº©n= khÃ´ng bÃ¡n/hiá»ƒn thá»‹=Ä‘ang bÃ¡n),â€¦vâ€¦v.)
+Sá»­a sáº£n pháº©m: hiá»ƒn thá»‹ Ä‘Ãºng thÃ´ng tin trÆ°á»›c khi sá»­a (gÃ´Ì€m sÆ°Ì‰a & boÌ‰ hiÌ€nh). Äáº·c biá»‡t chÃº Ã½: sá»­a hiá»‡n tráº¡ng sáº£n pháº©m
+XoÃ¡ sáº£n pháº©m (khi chá»n xoÃ¡ sáº£n pháº©m: náº¿u sáº£n pháº©m chÆ°a Ä‘Æ°á»£c nháº­p hÃ ng thÃ¬ tiáº¿n hÃ nh xoÃ¡ háº³n trong CSDL, ngÆ°á»£c láº¡i Ä‘Ã¡nh dáº¥u áº©n sáº£n pháº©m trÃªn website.
+Quáº£n lÃ½ nháº­p hÃ ng, láº­p phiáº¿u nháº­p hÃ ng: (1 phiáº¿u nháº­p cÃ³ thá»ƒ nháº­p cho nhiá»u sáº£n pháº©m)
+1.0
+Táº¡o phiáº¿u nháº­p vÃ  lÆ°u trá»¯ cÄƒn cá»© theo ngÃ y nháº­p, láº§n nháº­p, giÃ¡ nháº­p vÃ  sá»‘ lÆ°á»£ng nháº­p. (káº¿t há»£p chá»©c nÄƒng tÃ¬m kiáº¿m sáº£n pháº©m Ä‘á»ƒ thuáº­n tiá»‡n cho ngÆ°á»i dÃ¹ng táº¡o phiáº¿u nháº­p)
+Sá»­a phiáº¿u nháº­p kho (Ä‘i kÃ¨m vá»›i chá»©c nÄƒng tÃ¬m kiáº¿m phiáº¿u nháº­p kho) vÃ  hoÃ n thÃ nh phiáº¿u nháº­p kho. (lÆ°u Ã½: chiÌ‰ coÌ thÃªÌ‰ sÆ°Ì‰a phiÃªÌu nhÃ¢Ì£p trÆ°Æ¡Ìc khi hoaÌ€n thaÌ€nh phiáº¿u. 
+GiÃ¡ vá»‘n Ä‘Æ°á»£c cáº­p nháº­t Ä‘Ãºng sau khi hoÃ n thÃ nh phiáº¿u nháº­p kho má»›i
+[-0.5]
+Quáº£n lÃ½ giÃ¡ bÃ¡n:
+0.5
+Xem/cáº­p nháº­t thÃ´ng tin tiÌ‰ lÃªÌ£ % lÆ¡Ì£i nhuÃ¢Ì£n theo saÌ‰n phÃ¢Ì‰m.
+HiÃªÌ‰n thiÌ£ & tra cÆ°Ìu giaÌ vá»‘n, % lÆ¡Ì£i nhuÃ¢Ì£n, giaÌ baÌn cá»§a saÌ‰n phÃ¢Ì‰m.
+GiÃ¡ bÃ¡n Ä‘Æ°á»£c cáº­p nháº­t 
+Ä‘Ãºng
+ sau khi giÃ¡ vá»‘n thay Ä‘á»•i vÃ  sau khi thay Ä‘á»•i tá»‰ lá»‡ % lá»£i nhuáº­n
+[-0.5]
+Quáº£n lÃ½ Ä‘Æ¡n Ä‘áº·t hÃ ng cá»§a khÃ¡ch:
+1.0
+Cáº­p nháº­t tráº¡ng thÃ¡i Ä‘Æ¡n: chÆ°a xá»­ lÃ½ (khÃ¡ch hÃ ng má»›i Ä‘áº·t), Ä‘Ã£ xÃ¡c nháº­n, Ä‘Ã£ giao thÃ nh cÃ´ng hoáº·c Ä‘Ã£ huá»·.
+Lá»c cÃ¡c Ä‘Æ¡n Ä‘áº·t hÃ ng vÃ  sáº¯p xáº¿p theo phÆ°á»ng cá»§a Ä‘á»‹a chá»‰ giao hÃ ng:
+Trong 1 khoáº£ng thá»i gian (dá»±a trÃªn thá»i gian Ä‘áº·t Ä‘Æ¡n)
+Theo tÃ¬nh tráº¡ng Ä‘Æ¡n
+Xem chi tiáº¿t Ä‘Æ¡n Ä‘áº·t hÃ ng
+Quáº£n lÃ½ tá»“n kho vÃ  thá»‘ng kÃª bÃ¡o cÃ¡o: 
+1.0
+Tra cÆ°Ìu sÃ´Ì lÆ°Æ¡Ì£ng tÃ´Ì€n cuÌ‰a mÃ´Ì£t loáº¡i saÌ‰n phÃ¢Ì‰m táº¡i 1 thá»i Ä‘iá»ƒm do ngÆ°á»i dÃ¹ng Ä‘á»‹nh.
+BÃ¡o cÃ¡o tá»•ng sá»‘ lÆ°á»£ng nháº­p â€“ xuáº¥t cá»§a sáº£n pháº©m trong má»™t khoáº£ng má»™t khoáº£ng thá»i gian.
+Cáº£nh bÃ¡o sáº£n pháº©m sáº¯p háº¿t hÃ ng. (Cho phÃ©p ngÆ°á»i dÃ¹ng chá»‰ Ä‘á»‹nh sá»‘ lÆ°á»£ng nÃ o Ä‘Æ°á»£c gá»i lÃ  sáº¯p háº¿t)
+Äiá»ƒm cá»™ng
+:
+ KhÃ¡c má»—i chá»©c nÄƒng há»¯u dá»¥ng Ä‘Æ°á»£c cá»™ng Ä‘iá»ƒm tuá»³ giÃ¡o viÃªn cháº¥m
+Äiá»ƒm trá»«
+:
+Thiáº¿t káº¿ Ä‘Ãºng DB: cÃ¡c báº£ng dá»¯ liá»‡u quan há»‡ má»™t â€“ nhiá»u
+CÃ¡c thÃ´ng tin nháº­p liá»‡u pháº£i Ä‘Æ°á»£c kiá»ƒm tra tÃ­nh Ä‘Ãºng á»Ÿ form nháº­p liá»‡u trÆ°á»›c khi gá»­i request vá» mÃ¡y chá»§.
+Giao diá»‡n khÃ´ng quÃ¡ xáº¥u.
+Tráº£ lá»i Ä‘Æ°á»£c cÃ¢u há»i cá»§a gv vá» code
+Tá»‘i Ä‘a 
+[
+2.0
+]
+[-1.0]
+[-1.0]
+[-1.0]
+[-3.0]
+Tá»•ng Ä‘iá»ƒm
+10.00
+GiÃ¡ sáº£n pháº©m Ä‘Æ°á»£c tÃ­nh nhÆ° sau:
++ GiÃ¡ bÃ¡n = giÃ¡ vá»‘n * (100%+ tá»· lá»‡ lá»£i nhuáº­n)
++ GiÃ¡ vá»‘n Ä‘Æ°á»£c tÃ­nh theo quy táº¯c BÃŒNH QUÃ‚N: giÃ¡ vá»‘n cá»§a 1 sáº£n pháº©m Ä‘Æ°á»£c update khi nháº­p hÃ ng lÃ  giÃ¡ trá»‹ bÃ¬nh quÃ¢n (sá»‘ lÆ°á»£ng tá»“n * giÃ¡ vá»‘n hiá»‡n táº¡i + sá»‘ lÆ°á»£ng nháº­p má»›i * giÃ¡ nháº­p má»›i) / (sá»‘ lÆ°á»£ng tá»“n + sá»‘ lÆ°á»£ng nháº­p).
+V
+D
+: 
+1. Nháº­p láº§n Ä‘áº§u: Tá»“n kho ban Ä‘áº§u lÃ  0 sáº£n pháº©m giÃ¡ vá»‘n 0 Ä‘á»“ng, nháº­p 10 sáº£n pháº©m vá»›i giÃ¡ nháº­p lÃ  20 ==> GiÃ¡ vá»‘n = (0 sp tá»“n * 0 giÃ¡ vá»‘n + 10 sp nháº­p *20 giÃ¡ nháº­p ) / (0 sp tá»“n + 10 sp nháº­p)  = 20
+    Sau Ä‘Ã³ bÃ¡n 4 sp, sá»‘ lÆ°á»£ng tá»“n cÃ²n 6, giÃ¡ vá»‘n 20
+2. Nháº­p láº§n hai: Nháº­p 10, giÃ¡ nháº­p15 ==> giÃ¡ vá»‘n má»›i = (6 sp tá»“n * 20 giÃ¡ vá»‘n +10 sp nháº­p * 15 giÃ¡ nháº­p) / (6 sp tá»“n + 10 sp nháº­p) = 16,875 Ä‘á»“ng
+    Váº­y sau thá»i Ä‘iá»ƒm nháº­p láº§n hai, giÃ¡ vá»‘n cá»§a sp Ä‘Ã³ lÃ  16,875
+LÆ°u yÌ:
+Tá»•ng Ä‘iá»ƒm tá»‘i Ä‘a lÃ  10 Ä‘iá»ƒm
+KhÃ´ng Ä‘Æ°á»£c sá»­ dá»¥ng CMS (ÄÆ°á»£c phÃ©p sá»­ dá»¥ng framework â€“ TÃ¹y theo 
+giáº£ng viÃªn
+ quy Ä‘á»‹nh)
+CÃ¡ch thá»©c c
+hÃ¢Ìm baÌ€i 
+tÃ¹y
+theo giáº£ng
+ viÃªn chá»‰ Ä‘á»‹nh, má»i lÃ½ do trá»¥c tráº·c (máº¥t font tiáº¿ng Viá»‡t, máº¥t hÃ¬nh áº£nh, hiá»‡u á»©ng, lá»—i dá»¯ liá»‡uâ€¦) Ä‘á»u bá»‹ tÃ­nh lÃ  lá»—i.
+CÃ¡c Ä‘Æ°á»ng dáº«n trong source code pháº£i sá»­ dá»¥ng Ä‘Æ°á»ng dáº«n tÆ°Æ¡ng Ä‘á»‘i.
+Ná»™p kÃ¨m bÃ¡o cÃ¡o (file má»m .DOCX vÃ  In cuá»‘n) theo máº«u quy Ä‘á»‹nh.

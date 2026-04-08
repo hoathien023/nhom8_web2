@@ -139,7 +139,10 @@ for ($i = 1; $i <= $numberOfPages; $i++) {
 
                         <th scope="col">#</th>
                         <th scope="col">Tên</th>
+                        <th scope="col">ĐVT</th>
                         <th scope="col">Ảnh</th>
+                        <th scope="col">Giá vốn</th>
+                        <th scope="col">Lợi nhuận %</th>
                         <th scope="col">Giá thường</th>
                         <th scope="col">Giá khuyến mãi</th>
                         <th scope="col">Chỉnh sửa</th>
@@ -153,14 +156,22 @@ for ($i = 1; $i <= $numberOfPages; $i++) {
                     foreach ($list_products as $value) {
                         $index++;
                        $orderNumber = ($currentPage - 1) * $productsPerPage + $index;
+                       $unit = isset($value['unit']) ? $value['unit'] : '-';
+                       $cost_price = isset($value['cost_price']) ? (int)$value['cost_price'] : 0;
+                       $profit_rate = isset($value['profit_rate']) ? (float)$value['profit_rate'] : 0;
                     ?>
                     <tr>
 
                         <td class="text-dark"><?=$orderNumber?></td>
                         <td class="text-dark" style="min-width: 200px;"><?=$value['name']?></td>
+                        <td class="text-dark"><?=$unit?></td>
                         <td>
                             <img style="max-width: 50px;" src="../upload/<?=$value['image']?>" alt="">
                         </td>
+                        <td class="text-dark" style="font-weight: 600;">
+                            <?=$ProductModel->format_cost_price($cost_price)."₫"?>
+                        </td>
+                        <td class="text-dark"><?=rtrim(rtrim(number_format($profit_rate, 2, '.', ''), '0'), '.')?>%</td>
                         <td class="text-dark" style="font-weight: 600;">
                             <?=number_format($value['price'])."₫"?>
                         </td>

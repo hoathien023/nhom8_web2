@@ -3,6 +3,11 @@
     $password_tmp = '';
     $error ='';
 
+    if (isset($_SESSION['locked_message'])) {
+        $error = $_SESSION['locked_message'];
+        unset($_SESSION['locked_message']);
+    }
+
     if(isset($_SESSION['user_register'])) {
         $username_tmp = $_SESSION['user_register']['username'];
         $password_tmp = $_SESSION['user_register']['password'];

@@ -16,6 +16,8 @@
             $order_status = 'Đang giao';
         }elseif($status == 4) {
             $order_status = 'Giao thành công';
+    }elseif($status == 5) {
+        $order_status = 'Đã hủy';
         }
 ?>
 

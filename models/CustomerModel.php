@@ -25,6 +25,12 @@
             return pdo_query($sql, $username);
         }
 
+        public function get_user_by_id($user_id) {
+            $sql = "SELECT * FROM users WHERE user_id = ?";
+
+            return pdo_query_one($sql, $user_id);
+        }
+
         public function update_password($new_password, $user_id) {
             $sql = "UPDATE users SET password = ? WHERE user_id = ?";
 

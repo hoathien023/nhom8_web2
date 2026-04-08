@@ -2,7 +2,7 @@
     class OrderModel{
 
         // Select thông tin đon hàng
-        public function select_list_orders_admin() {
+        public function select_list_orders_admin($from_date = '', $to_date = '', $status = -1, $ward_keyword = '') {
             $sql = "
                     SELECT
                     orders.order_id,
@@ -20,10 +20,28 @@
                     orders
                 JOIN
                     users ON orders.user_id = users.user_id
-                ORDER BY orders.order_id DESC
+                WHERE 1
             ";
+            $args = [];
+            if ($from_date !== '') {
+                $sql .= " AND DATE(orders.date) >= ?";
+                $args[] = $from_date;
+            }
+            if ($to_date !== '') {
+                $sql .= " AND DATE(orders.date) <= ?";
+                $args[] = $to_date;
+            }
+            if ((int)$status >= 1 && (int)$status <= 5) {
+                $sql .= " AND orders.status = ?";
+                $args[] = (int)$status;
+            }
+            if ($ward_keyword !== '') {
+                $sql .= " AND orders.address LIKE ?";
+                $args[] = "%" . $ward_keyword . "%";
+            }
+            $sql .= " ORDER BY orders.order_id DESC";
 
-            return pdo_query($sql);
+            return pdo_query($sql, ...$args);
         }
 
         public function select_orders_unconfirmed() {

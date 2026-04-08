@@ -56,6 +56,7 @@
                         <div class="dropdown-menu bg-transparent border-0">
                             <a href="index.php?quanli=them-san-pham" class="dropdown-item">Thêm mới</a>
                             <a href="index.php?quanli=danh-sach-san-pham" class="dropdown-item">Tất cả</a>
+                            <a href="index.php?quanli=quan-ly-gia-ban" class="dropdown-item">Quản lý giá bán</a>
 
                         </div>
                     </div>
