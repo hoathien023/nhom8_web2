@@ -255,36 +255,47 @@
 .price-range-box {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     border: 1px solid #e1e1e1;
     border-radius: 6px;
-    padding: 8px;
+    padding: 8px 10px;
     margin-top: 6px;
 }
 
 .price-range-box input {
-    width: calc(50% - 18px);
+    width: calc((100% - 42px) / 2);
     border: none;
     outline: none;
     background: transparent;
     text-align: center;
-    font-size: 14px;
+    font-size: 12px !important;
     font-weight: 500;
-    padding: 0;
+    line-height: 1.2;
+    padding: 0 2px !important;
+    overflow: visible;
+    white-space: nowrap;
     box-sizing: border-box;
+    min-width: 0;
 }
 
 .price-separator {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 36px;
+    width: 34px;
+    flex: 0 0 34px;
     margin: 0;
     text-align: center;
+    transform: none;
     color: #555;
     font-weight: 500;
     white-space: nowrap;
     font-size: 13px;
+}
+
+#maxamount {
+    text-align: center;
+    padding-left: 0;
 }
 </style>
 

@@ -82,28 +82,37 @@
 
 <!-- Toatr -->
 <script>
-$(document).ready(function() {
-    $("#toastr-success-top-right").on("click", function() {
-        toastr.success("1 sản phẩm đã thêm vào giỏ", "Thành công", {
-            closeButton: true,
-            debug: false,
-            newestOnTop: false,
-            progressBar: true,
-            positionClass: "toast-top-right",
-            preventDuplicates: false,
-            onclick: null,
-            showDuration: "300",
-            hideDuration: "1000",
-            timeOut: "5000",
-            extendedTimeOut: "1000",
-            showEasing: "swing",
-            hideEasing: "linear",
-            showMethod: "fadeIn",
-            hideMethod: "fadeOut"
+(function() {
+    if (!window.jQuery || !window.toastr) return;
+    jQuery(function($) {
+        $("#toastr-success-top-right").on("click", function() {
+            toastr.success("1 sản phẩm đã thêm vào giỏ", "Thành công", {
+                closeButton: true,
+                debug: false,
+                newestOnTop: false,
+                progressBar: true,
+                positionClass: "toast-top-right",
+                preventDuplicates: false,
+                onclick: null,
+                showDuration: "300",
+                hideDuration: "1000",
+                timeOut: "5000",
+                extendedTimeOut: "1000",
+                showEasing: "swing",
+                hideEasing: "linear",
+                showMethod: "fadeIn",
+                hideMethod: "fadeOut"
+            });
         });
     });
-});
+})();
 </script>
+
+<?php if (!empty($_SESSION['cart_toast_success'])) { ?>
+<script>
+window.__cartToastSuccess = "<?=htmlspecialchars($_SESSION['cart_toast_success'], ENT_QUOTES)?>";
+</script>
+<?php unset($_SESSION['cart_toast_success']); } ?>
 
 <!-- Js Plugins -->
 
@@ -118,6 +127,125 @@ $(document).ready(function() {
 <script src="public/js/jquery.nicescroll.min.js"></script>
 
 <script src="public/js/main.js?v=20260408-1"></script>
+
+<script>
+(function() {
+    function showCenterCartNotice(message, isError) {
+        var old = document.getElementById('cart-center-toast');
+        if (old) old.remove();
+
+        var wrap = document.createElement('div');
+        wrap.id = 'cart-center-toast';
+        wrap.style.position = 'fixed';
+        wrap.style.top = '88px';
+        wrap.style.left = '50%';
+        wrap.style.transform = 'translateX(-50%)';
+        wrap.style.zIndex = '99999';
+        wrap.style.minWidth = '360px';
+        wrap.style.maxWidth = '90vw';
+        wrap.style.padding = '14px 20px';
+        wrap.style.borderRadius = '10px';
+        wrap.style.boxShadow = '0 10px 26px rgba(0,0,0,.18)';
+        wrap.style.textAlign = 'center';
+        wrap.style.fontSize = '20px';
+        wrap.style.fontWeight = '700';
+        wrap.style.lineHeight = '1.3';
+        wrap.style.color = '#fff';
+        wrap.style.background = isError ? 'linear-gradient(90deg,#ef4444,#dc2626)' : 'linear-gradient(90deg,#22c55e,#16a34a)';
+        wrap.style.border = '1px solid rgba(255,255,255,.2)';
+        wrap.textContent = message || 'Đã thêm sản phẩm vào giỏ hàng thành công :3';
+        document.body.appendChild(wrap);
+
+        setTimeout(function() {
+            if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+        }, 1800);
+    }
+
+    function hookAjaxAddToCart() {
+        function handleAddToCartForm(form) {
+            if (!form) return;
+            if (form.dataset.ajaxBypass === '1') {
+                return;
+            }
+
+            var fd = new FormData(form);
+            fd.set('add_to_cart', '1');
+            fd.set('ajax_add_to_cart', '1');
+            fd.set('redirect_to', window.location.href);
+
+            var body = new URLSearchParams();
+            fd.forEach(function(value, key) {
+                body.append(key, value);
+            });
+
+            fetch(form.getAttribute('action') || 'index.php?url=gio-hang', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body: body.toString()
+            })
+            .then(function(res) { return res.text(); })
+            .then(function(raw) {
+                var data = null;
+                try {
+                    data = JSON.parse(raw);
+                } catch (err) {
+                    // Fallback: nếu không parse được JSON thì submit form kiểu cũ để vẫn thêm giỏ.
+                    form.dataset.ajaxBypass = '1';
+                    form.submit();
+                    return;
+                }
+                if (data && data.ok) {
+                    showCenterCartNotice(data.message || 'Bạn đã thêm sản phẩm vào giỏ hàng thành công :3', false);
+                } else {
+                    showCenterCartNotice((data && data.message) || 'Không thể thêm sản phẩm vào giỏ hàng', true);
+                }
+            })
+            .catch(function() {
+                form.dataset.ajaxBypass = '1';
+                form.submit();
+            });
+        }
+
+        var forms = document.querySelectorAll('form[action*="url=gio-hang"]');
+        if (!forms.length) return;
+
+        forms.forEach(function(form) {
+            if (!form.querySelector('input[name="product_id"]')) return;
+            form.addEventListener('submit', function(e) {
+                if (form.dataset.ajaxBypass === '1') {
+                    return;
+                }
+                var submitBtn = form.querySelector('button[name="add_to_cart"], input[name="add_to_cart"]');
+                if (!submitBtn) return;
+                e.preventDefault();
+                handleAddToCartForm(form);
+            });
+        });
+
+        // Capture click trên nút thêm giỏ để đảm bảo không bị submit thường.
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('button[name="add_to_cart"], input[name="add_to_cart"]');
+            if (!btn) return;
+            var form = btn.closest('form');
+            if (!form || !form.matches('form[action*="url=gio-hang"]')) return;
+            e.preventDefault();
+            handleAddToCartForm(form);
+        }, true);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hookAjaxAddToCart);
+    } else {
+        hookAjaxAddToCart();
+    }
+
+    if (window.__cartToastSuccess) {
+        showCenterCartNotice(window.__cartToastSuccess, false);
+    }
+})();
+</script>
 
 <!-- dialogflow -->
 <!-- <script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>

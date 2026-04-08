@@ -35,61 +35,93 @@
         exit();
     }
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_to_cart"])) {
+        $is_ajax_add_to_cart = isset($_POST['ajax_add_to_cart']) && (int)$_POST['ajax_add_to_cart'] === 1;
         $product_id = (int)$_POST["product_id"];
-        $user_id = (int)$_POST["user_id"];
+        $user_id = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : (int)($_POST["user_id"] ?? 0);
         $product_quantity = (int)$_POST["product_quantity"];
 
         if($product_quantity < 1 ) {
-            
-            echo "<script>alert('Số lượng sản phẩm không được nhỏ hơn 0');</script>";
-            echo "<script>window.location.href='index.php?url=chitietsanpham&id_sp=".$product_id."&id_dm=16';</script>";
-            exit();
+            if ($is_ajax_add_to_cart) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(array(
+                    'ok' => false,
+                    'message' => 'Số lượng sản phẩm không hợp lệ'
+                ));
+                exit();
+            }
+            $error = 'Số lượng sản phẩm không hợp lệ';
         }
 
-        $product_info = $ProductModel->select_products_by_id($product_id);
-        if (!$product_info) {
-            $error = 'Sản phẩm không tồn tại hoặc đã bị ẩn.';
-        } elseif ((int)$product_info['quantity'] <= 0) {
-            $error = 'Sản phẩm đã hết hàng.';
-        } else {
-            $product_name = $product_info['name'];
-            $product_price = $product_info['sale_price'];
-            $product_image = $product_info['image'];
-            $max_quantity = (int)$product_info['quantity'];
+        if ($error === '') {
+            $product_info = $ProductModel->select_products_by_id($product_id);
+            if (!$product_info) {
+                $error = 'Sản phẩm không tồn tại hoặc đã bị ẩn.';
+            } elseif ((int)$product_info['quantity'] <= 0) {
+                $error = 'Sản phẩm đã hết hàng.';
+            } else {
+                $product_name = $product_info['name'];
+                $product_price = $product_info['sale_price'];
+                $product_image = $product_info['image'];
+                $max_quantity = (int)$product_info['quantity'];
 
-            // Đếm số lượng sản trong giỏ hàng
-            $product = $CartModel->select_cart_by_id($product_id, $user_id);
-            // Kiểm tra xem có sản phẩm trong giỏ hàng hay không
-            if($product && is_array($product)) {
-                // Số lượng mới = số lượng hiện tại + số lượng vừa thêm
-                $current_quantity = (int)$product['product_quantity'];
-                $new_quantity = $current_quantity + $product_quantity;
-                if ($new_quantity > $max_quantity) {
-                    $new_quantity = $max_quantity;
-                    $error = 'Số lượng trong giỏ đã được giới hạn theo tồn kho hiện tại.';
+                // Đếm số lượng sản trong giỏ hàng
+                $product = $CartModel->select_cart_by_id($product_id, $user_id);
+                // Kiểm tra xem có sản phẩm trong giỏ hàng hay không
+                if($product && is_array($product)) {
+                    // Số lượng mới = số lượng hiện tại + số lượng vừa thêm
+                    $current_quantity = (int)$product['product_quantity'];
+                    $new_quantity = $current_quantity + $product_quantity;
+                    if ($new_quantity > $max_quantity) {
+                        $new_quantity = $max_quantity;
+                        $error = 'Số lượng trong giỏ đã được giới hạn theo tồn kho hiện tại.';
+                    }
+
+                    // Cập nhật số lượng
+                    $CartModel->update_cart($new_quantity, $product_id, $user_id);
+                    if ($success === '') {
+                        $success .= 'Đã cập nhật số lượng cho sản phẩm: '.$product_name;
+                    }
                 }
-
-                // Cập nhật số lượng
-                $CartModel->update_cart($new_quantity, $product_id, $user_id);
-                if ($success === '') {
-                    $success .= 'Đã cập nhật số lượng cho sản phẩm: '.$product_name;
+                else {
+                    if ($product_quantity > $max_quantity) {
+                        $product_quantity = $max_quantity;
+                        $error = 'Số lượng thêm vào giỏ đã được giới hạn theo tồn kho hiện tại.';
+                    }
+                    $CartModel->insert_cart($product_id, $user_id, $product_name, $product_price, $product_quantity, $product_image);
+                    if ($success === '') {
+                        $success = "Đã thêm sản phẩm vào giỏ hàng";
+                    }
                 }
             }
-            else {
-                if ($product_quantity > $max_quantity) {
-                    $product_quantity = $max_quantity;
-                    $error = 'Số lượng thêm vào giỏ đã được giới hạn theo tồn kho hiện tại.';
-                }
-                $CartModel->insert_cart($product_id, $user_id, $product_name, $product_price, $product_quantity, $product_image);
-                if ($success === '') {
-                    $success = "Đã thêm sản phẩm vào giỏ hàng";
-                }
-            }
+        }
+
+        if ($is_ajax_add_to_cart) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(array(
+                'ok' => $error === '',
+                'message' => $error === '' ? 'Bạn đã thêm sản phẩm vào giỏ hàng thành công :3' : $error
+            ));
+            exit();
         }
 
         $_SESSION['cart_flash_success'] = $success;
         $_SESSION['cart_flash_error'] = $error;
-        header("Location: index.php?url=gio-hang");
+        if ($success !== '') {
+            $_SESSION['cart_toast_success'] = 'Bạn đã thêm sản phẩm vào giỏ hàng thành công :3';
+        }
+
+        $redirect_url = '';
+        if (!empty($_POST['redirect_to'])) {
+            $redirect_url = trim((string)$_POST['redirect_to']);
+        } elseif (!empty($_SERVER['HTTP_REFERER'])) {
+            $redirect_url = trim((string)$_SERVER['HTTP_REFERER']);
+        }
+
+        if ($redirect_url === '') {
+            $redirect_url = "index.php?url=gio-hang";
+        }
+
+        header("Location: " . $redirect_url);
         exit();
     }
 
@@ -98,6 +130,24 @@
         $CartModel->delete_cart_by_id($cart_id);
 
         $success = 'Đã xóa 1 sản phẩm';
+    }
+
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["delete_selected_products"]) && isset($_SESSION['user'])) {
+        $user_id = (int)$_SESSION['user']['id'];
+        $selected_ids = isset($_POST['selected_product_ids']) && is_array($_POST['selected_product_ids'])
+            ? array_values(array_unique(array_filter(array_map('intval', $_POST['selected_product_ids']), function ($id) {
+                return $id > 0;
+            })))
+            : array();
+
+        if (empty($selected_ids)) {
+            $error = 'Vui lòng chọn sản phẩm cần xóa';
+        } else {
+            foreach ($selected_ids as $selected_product_id) {
+                $CartModel->delete_product_in_cart($selected_product_id, $user_id);
+            }
+            $success = 'Đã xóa ' . count($selected_ids) . ' sản phẩm';
+        }
     }
 ?>
 
@@ -245,8 +295,10 @@
             </div>
             <div class="row">
                 <div class="col-lg-6 col-md-6 col-sm-6">
-                    <div class="cart__btn">
+                    <div class="cart__btn cart-actions-inline">
                         <a href="index.php?url=cua-hang">Tiếp tục mua sắm</a>
+                        <button type="button" id="select-all-btn" class="action-btn-like-link">CHỌN TẤT CẢ</button>
+                        <button type="button" id="delete-selected-btn" class="action-btn-like-link delete-btn" style="display:none;">XÓA SẢN PHẨM</button>
                     </div>
                 </div>
                 <div class="col-lg-6 col-md-6 col-sm-6"></div>
@@ -323,6 +375,29 @@
     transition: 0.2s;
 }
 
+.cart-actions-inline {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-btn-like-link {
+    display: inline-block;
+    font-size: 14px;
+    color: #111111;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: #f5f5f5;
+    padding: 14px 30px 12px;
+    border: none;
+    cursor: pointer;
+}
+
+.action-btn-like-link.delete-btn {
+    background: #ffe8ea;
+    color: #b42318;
+}
+
 .cart__total__procced {
     max-width: 430px;
     margin-left: auto;
@@ -385,6 +460,8 @@
     var warningEl = document.getElementById('checkout-warning-top');
     var selectedCountEl = document.getElementById('selected-count');
     var selectedTotalEl = document.getElementById('selected-total');
+    var selectAllBtn = document.getElementById('select-all-btn');
+    var deleteSelectedBtn = document.getElementById('delete-selected-btn');
     var checkboxes = Array.prototype.slice.call(document.querySelectorAll('.checkout-product-checkbox'));
     var cartRows = Array.prototype.slice.call(document.querySelectorAll('tr.cart-row'));
     if (!checkoutBtn) return;
@@ -405,18 +482,27 @@
     function recalcSummary() {
         var selectedItems = 0;
         var selectedTotal = 0;
+        var checkedRows = 0;
         cartRows.forEach(function(row) {
             var checkbox = row.querySelector('.checkout-product-checkbox');
             var qtyInput = row.querySelector('.quantity-field-cart');
             var unit = Number(row.getAttribute('data-unit-price') || 0);
             var qty = Number(qtyInput ? qtyInput.value : 0);
             if (checkbox && checkbox.checked) {
+                checkedRows += 1;
                 selectedItems += qty;
                 selectedTotal += unit * qty;
             }
         });
         if (selectedCountEl) selectedCountEl.textContent = selectedItems + ' sản phẩm';
         if (selectedTotalEl) selectedTotalEl.textContent = formatMoney(selectedTotal);
+        if (deleteSelectedBtn) {
+            deleteSelectedBtn.style.display = checkedRows > 0 ? 'inline-block' : 'none';
+        }
+        if (selectAllBtn) {
+            var allChecked = checkboxes.length > 0 && checkboxes.every(function(c) { return c.checked; });
+            selectAllBtn.textContent = allChecked ? 'BỎ CHỌN TẤT CẢ' : 'CHỌN TẤT CẢ';
+        }
     }
 
     function syncQtyToServer(productId, quantity, row) {
@@ -482,6 +568,41 @@
     });
 
     recalcSummary();
+
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            var allChecked = checkboxes.length > 0 && checkboxes.every(function(c) { return c.checked; });
+            checkboxes.forEach(function(c) { c.checked = !allChecked; });
+            recalcSummary();
+        });
+    }
+
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', function() {
+            var checked = document.querySelectorAll('.checkout-product-checkbox:checked');
+            if (!checked.length) return;
+            var form = document.createElement('form');
+            form.method = 'post';
+            form.action = 'index.php?url=gio-hang';
+
+            var actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'delete_selected_products';
+            actionInput.value = '1';
+            form.appendChild(actionInput);
+
+            checked.forEach(function(item) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_product_ids[]';
+                input.value = item.value;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
 
     checkoutBtn.addEventListener('click', function() {
         var checked = document.querySelectorAll('.checkout-product-checkbox:checked');

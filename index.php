@@ -38,6 +38,78 @@ if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
     }
 }
 
+// AJAX cart handlers must run before rendering HTML.
+if (
+    isset($_GET['url']) && $_GET['url'] === 'gio-hang' &&
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    (isset($_POST['ajax_update_qty']) || isset($_POST['ajax_add_to_cart']))
+) {
+    header('Content-Type: application/json; charset=utf-8');
+
+    if (!isset($_SESSION['user'])) {
+        echo json_encode(array('ok' => false, 'message' => 'Vui lòng đăng nhập'));
+        exit();
+    }
+
+    $user_id = (int)$_SESSION['user']['id'];
+
+    if (isset($_POST['ajax_update_qty'])) {
+        $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+        $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
+        if ($quantity < 1) $quantity = 1;
+
+        $product_info = $ProductModel->select_products_by_id($product_id);
+        if (!$product_info || (int)$product_info['quantity'] <= 0) {
+            echo json_encode(array('ok' => false, 'message' => 'Sản phẩm không còn khả dụng'));
+            exit();
+        }
+        if ($quantity > (int)$product_info['quantity']) {
+            $quantity = (int)$product_info['quantity'];
+        }
+        $CartModel->update_cart($quantity, $product_id, $user_id);
+        echo json_encode(array('ok' => true, 'quantity' => $quantity));
+        exit();
+    }
+
+    if (isset($_POST['ajax_add_to_cart'])) {
+        $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+        $product_quantity = isset($_POST['product_quantity']) ? (int)$_POST['product_quantity'] : 1;
+        if ($product_quantity < 1) $product_quantity = 1;
+
+        $product_info = $ProductModel->select_products_by_id($product_id);
+        if (!$product_info) {
+            echo json_encode(array('ok' => false, 'message' => 'Sản phẩm không tồn tại hoặc đã bị ẩn.'));
+            exit();
+        }
+        if ((int)$product_info['quantity'] <= 0) {
+            echo json_encode(array('ok' => false, 'message' => 'Sản phẩm đã hết hàng.'));
+            exit();
+        }
+
+        $product_name = $product_info['name'];
+        $product_price = $product_info['sale_price'];
+        $product_image = $product_info['image'];
+        $max_quantity = (int)$product_info['quantity'];
+
+        $product = $CartModel->select_cart_by_id($product_id, $user_id);
+        if ($product && is_array($product)) {
+            $new_quantity = (int)$product['product_quantity'] + $product_quantity;
+            if ($new_quantity > $max_quantity) {
+                $new_quantity = $max_quantity;
+            }
+            $CartModel->update_cart($new_quantity, $product_id, $user_id);
+        } else {
+            if ($product_quantity > $max_quantity) {
+                $product_quantity = $max_quantity;
+            }
+            $CartModel->insert_cart($product_id, $user_id, $product_name, $product_price, $product_quantity, $product_image);
+        }
+
+        echo json_encode(array('ok' => true, 'message' => 'Bạn đã thêm sản phẩm vào giỏ hàng thành công :3'));
+        exit();
+    }
+}
+
 require_once "components/head.php";
 require_once "components/header.php";
 
