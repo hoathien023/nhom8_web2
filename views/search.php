@@ -43,6 +43,10 @@
     }
 
     $list_catgories = $CategoryModel->select_all_categories();
+    $is_hidden_category = function ($name) {
+        $category_name = trim((string)$name);
+        return $category_name === 'Chưa có danh mục' || $category_name === 'chưa có danh mục';
+    };
 
     $search_params = array(
         'url' => 'tim-kiem',
@@ -54,6 +58,9 @@
 
     $selected_category_name = 'Tất cả';
     foreach ($list_catgories as $cate_item) {
+        if ($is_hidden_category($cate_item['name'])) {
+            continue;
+        }
         if ((int)$cate_item['category_id'] === (int)$category_id) {
             $selected_category_name = $cate_item['name'];
             break;
@@ -94,6 +101,9 @@
                                     <?php foreach ($list_catgories as $value) {
                                         $cate_id = (int)$value['category_id'];
                                         $cate_name = $value['name'];
+                                        if ($is_hidden_category($cate_name)) {
+                                            continue;
+                                        }
                                     ?>
                                     <div class="card">
                                         <div class="card-heading active">
@@ -127,7 +137,11 @@
                                             <p>Danh mục:</p>
                                             <select name="category_id" class="form-control">
                                                 <option value="" <?=$category_id <= 0 ? 'selected' : ''?>>Tất cả</option>
-                                                <?php foreach ($list_catgories as $cate_item) { ?>
+                                                <?php foreach ($list_catgories as $cate_item) {
+                                                    if ($is_hidden_category($cate_item['name'])) {
+                                                        continue;
+                                                    }
+                                                ?>
                                                     <option value="<?=$cate_item['category_id']?>" <?=$category_id === (int)$cate_item['category_id'] ? 'selected' : ''?>>
                                                         <?=$cate_item['name']?>
                                                     </option>
@@ -320,6 +334,12 @@
 }
 
 .price-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    margin: 0;
+    text-align: center;
     color: #555;
     font-weight: 500;
     white-space: nowrap;

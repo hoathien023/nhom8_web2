@@ -31,15 +31,72 @@
         }
 
         public function search_products($query) {
-            $sql = "SELECT * FROM products WHERE name LIKE '%$query%' AND status = 1 ";
+            $sql = "SELECT * FROM products WHERE name LIKE ? AND status = 1 ORDER BY product_id DESC";
  
-            return pdo_query($sql);
+            return pdo_query($sql, "%" . $query . "%");
         }
 
         public function search_products_by_price($from_price, $to_price) {
-            $sql = "SELECT * FROM products WHERE sale_price BETWEEN '$from_price' AND '$to_price' AND status = 1 ";
+            $sql = "SELECT * FROM products WHERE sale_price BETWEEN ? AND ? AND status = 1 ORDER BY product_id DESC";
  
-            return pdo_query($sql);
+            return pdo_query($sql, $from_price, $to_price);
+        }
+
+        public function search_products_advanced($query, $category_id, $from_price, $to_price, $page = 1, $perPage = 9) {
+            $sql = "SELECT * FROM products WHERE status = 1";
+            $params = array();
+
+            if ($query !== '') {
+                $sql .= " AND name LIKE ?";
+                $params[] = "%" . $query . "%";
+            }
+
+            if ((int)$category_id > 0) {
+                $sql .= " AND category_id = ?";
+                $params[] = (int)$category_id;
+            }
+
+            if ($from_price !== null) {
+                $sql .= " AND sale_price >= ?";
+                $params[] = (int)$from_price;
+            }
+
+            if ($to_price !== null) {
+                $sql .= " AND sale_price <= ?";
+                $params[] = (int)$to_price;
+            }
+
+            $start = max(0, ((int)$page - 1) * (int)$perPage);
+            $sql .= " ORDER BY product_id DESC LIMIT " . $start . ", " . (int)$perPage;
+
+            return pdo_query($sql, ...$params);
+        }
+
+        public function count_products_advanced($query, $category_id, $from_price, $to_price) {
+            $sql = "SELECT COUNT(*) AS total FROM products WHERE status = 1";
+            $params = array();
+
+            if ($query !== '') {
+                $sql .= " AND name LIKE ?";
+                $params[] = "%" . $query . "%";
+            }
+
+            if ((int)$category_id > 0) {
+                $sql .= " AND category_id = ?";
+                $params[] = (int)$category_id;
+            }
+
+            if ($from_price !== null) {
+                $sql .= " AND sale_price >= ?";
+                $params[] = (int)$from_price;
+            }
+
+            if ($to_price !== null) {
+                $sql .= " AND sale_price <= ?";
+                $params[] = (int)$to_price;
+            }
+
+            return pdo_query_one($sql, ...$params);
         }
 
         public function search_products_advanced($query, $category_id, $from_price, $to_price, $page, $perPage) {
@@ -160,9 +217,8 @@
 
         // Đếm sản phẩm
         public function count_products() {
-            $sql = "SELECT product_id FROM products WHERE status = 1";
-
-            return pdo_query($sql);
+            $sql = "SELECT COUNT(*) AS total FROM products WHERE status = 1";
+            return pdo_query_one($sql);
         }
         
 

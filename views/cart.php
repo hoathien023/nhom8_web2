@@ -2,6 +2,38 @@
 
     $success = '';
     $error = '';
+    if (!empty($_SESSION['cart_flash_success'])) {
+        $success = $_SESSION['cart_flash_success'];
+        unset($_SESSION['cart_flash_success']);
+    }
+    if (!empty($_SESSION['cart_flash_error'])) {
+        $error = $_SESSION['cart_flash_error'];
+        unset($_SESSION['cart_flash_error']);
+    }
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["ajax_update_qty"]) && isset($_SESSION['user'])) {
+        header('Content-Type: application/json; charset=utf-8');
+        $user_id = (int)$_SESSION['user']['id'];
+        $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+        $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
+        if ($quantity < 1) {
+            $quantity = 1;
+        }
+        if ($product_id <= 0) {
+            echo json_encode(array('ok' => false, 'message' => 'Sản phẩm không hợp lệ'));
+            exit();
+        }
+        $product_info = $ProductModel->select_products_by_id($product_id);
+        if (!$product_info || (int)$product_info['quantity'] <= 0) {
+            echo json_encode(array('ok' => false, 'message' => 'Sản phẩm không còn khả dụng'));
+            exit();
+        }
+        if ($quantity > (int)$product_info['quantity']) {
+            $quantity = (int)$product_info['quantity'];
+        }
+        $CartModel->update_cart($quantity, $product_id, $user_id);
+        echo json_encode(array('ok' => true, 'quantity' => $quantity));
+        exit();
+    }
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_to_cart"])) {
         $product_id = (int)$_POST["product_id"];
         $user_id = (int)$_POST["user_id"];
@@ -55,48 +87,15 @@
             }
         }
 
-    }
-
-    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["update_cart"] ) && isset($_SESSION['user'])) {
-        // header("Location: index.php?url=gio-hang");
-        // Lấy thông tin cần thiết từ form
-        $user_id = $_SESSION['user']['id'];
-        $product_id = $_POST["product_id"];
-        $new_quantity = $_POST["quantity"];
-        $index = 0; // Đếm số sản phẩm xóa
-
-        for ($i = 0; $i < count($product_id); $i++) {
-            $id = (int)$product_id[$i];
-            $quantity = (int)$new_quantity[$i];
-            $product_info = $ProductModel->select_products_by_id($id);
-            
-            if ($quantity <= 0) {
-                // Nếu số lượng >=0 xóa sản phẩm trong giỏ hàng     
-                $CartModel->delete_product_in_cart($id, $user_id);
-
-                $index += 1;
-            } elseif(!$product_info || (int)$product_info['quantity'] <= 0) {
-                $CartModel->delete_product_in_cart($id, $user_id);
-                $index += 1;
-            } else {
-                if ($quantity > (int)$product_info['quantity']) {
-                    $quantity = (int)$product_info['quantity'];
-                }
-                $CartModel->update_cart($quantity, $id, $user_id);
-                
-            }
-        }
-        
-        if ($index > 0) {
-            $success = 'Đã xóa ' . $index . ' sản phẩm ra khỏi giỏ hàng';
-        } else {
-            $success = 'Cập nhật thành công';
-        }
+        $_SESSION['cart_flash_success'] = $success;
+        $_SESSION['cart_flash_error'] = $error;
+        header("Location: index.php?url=gio-hang");
+        exit();
     }
 
     if(isset($_GET['xoa'])) {
         $cart_id = $_GET['xoa'];
-        $result = $CartModel->delete_cart_by_id($cart_id);
+        $CartModel->delete_cart_by_id($cart_id);
 
         $success = 'Đã xóa 1 sản phẩm';
     }
@@ -157,9 +156,11 @@
                     <!-- <form action="" method="post"> -->
                     <div class="shop__cart__table">
                         <?=$alert = $BaseModel->alert_error_success($error, $success)?>
+                        <div id="checkout-warning-top" class="checkout-warning-message" style="display:none;"></div>
                         <table>
                             <thead>
                                 <tr>
+                                    <th>CHỌN</th>
                                     <th>SẢN PHẨM</th>
                                     <th>GIÁ</th>
                                     <th>SỐ LƯỢNG</th>
@@ -179,7 +180,13 @@
                                         $product = $ProductModel->select_cate_in_product($product_id);
                 
                                     ?>
-                                <tr>
+                                <tr class="cart-row" data-product-id="<?=$product_id?>" data-unit-price="<?=$product_price?>">
+                                    <td>
+                                        <label class="tick-box-wrap">
+                                            <input type="checkbox" class="checkout-product-checkbox" value="<?=$product_id?>">
+                                            <span class="tick-box"></span>
+                                        </label>
+                                    </td>
                                     <td class="cart__product__item">
                                         <a
                                             href="chitietsanpham&id_sp=<?=$product_id?>&id_dm=<?=$product['category_id']?>">
@@ -208,10 +215,10 @@
                                                 <input type="text" value="1">
                                             </div> -->
                                         <div class="input-group float-left">
-                                            <div class="input-next-cart d-flex ">
+                                            <div class="input-next-cart-custom d-flex ">
                                                 <input type="button" value="-" class="button-minus"
                                                     data-field="quantity">
-                                                <input type="number" readonly step="1" max=""
+                                                <input type="number" readonly step="1" min="1"
                                                     value="<?=$product_quantity?>" name="quantity[]"
                                                     class="quantity-field-cart">
                                                 <input type="button" value="+" class="button-plus"
@@ -219,7 +226,7 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="cart__total"><?=number_format($totalPrice)?>đ</td>
+                                    <td class="cart__total row-total"><?=number_format($totalPrice)?>đ</td>
                                     <td class="cart__close">
                                         <a href="index.php?url=gio-hang&xoa=<?=$cart_id?>">
                                             <span class="icon_close"></span>
@@ -242,14 +249,7 @@
                         <a href="index.php?url=cua-hang">Tiếp tục mua sắm</a>
                     </div>
                 </div>
-                <div class="col-lg-6 col-md-6 col-sm-6">
-                    <div class="cart__btn update__btn">
-                        <!-- <a href="#"><span class="icon_loading"></span>Cập nhật giỏ hàng</a> -->
-
-                        <button name="update_cart" type="submit"><span class="icon_loading"></span>Cập nhật giỏ
-                            hàng</button>
-                    </div>
-                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6"></div>
             </div>
         </form>
         <div class="row">
@@ -266,12 +266,11 @@
                 <div class="cart__total__procced">
                     <h6>Tổng tiền</h6>
                     <ul>
-                        <li>Số lượng <span><?=$count_carts?> sản phẩm</span></li>
+                        <li>Số lượng <span id="selected-count">0 sản phẩm</span></li>
                         <!-- Tổng thanh toán -->
-                        <li>Tổng <span><?=number_format($totalPayment)?>đ</span></li>
+                        <li>Tổng <span id="selected-total">0đ</span></li>
                     </ul>
-                    <a href="index.php?url=thanh-toan" class="primary-btn">THANH TOÁN COD</a>
-                    <a href="thanh-toan-momo" class="btn-momo primary-btn mt-3">THANH TOÁN MOMO</a>
+                    <button type="button" id="checkout-selected-btn" class="primary-btn w-100">THANH TOÁN</button>
                 </div>
             </div>
         </div>
@@ -324,13 +323,194 @@
     transition: 0.2s;
 }
 
-.btn-momo {
-    background-color: #D82D8B;
-    color: #fff;
+.cart__total__procced {
+    max-width: 430px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.btn-momo:hover {
-    opacity: 0.8;
-    color: #fff;
+.checkout-warning-message {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: #b42318;
+    background: #fff1f3;
+    border: 1px solid #fecdca;
+    border-radius: 6px;
+}
+
+.tick-box-wrap {
+    display: inline-flex;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
+
+.tick-box-wrap input {
+    display: none;
+}
+
+.tick-box {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #bfc7d4;
+    border-radius: 5px;
+    display: inline-block;
+    position: relative;
+    background: #fff;
+    transition: all 0.2s ease;
+}
+
+.tick-box-wrap input:checked + .tick-box {
+    background: #0a68ff;
+    border-color: #0a68ff;
+}
+
+.tick-box-wrap input:checked + .tick-box:after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 </style>
+
+<script>
+(function() {
+    var checkoutBtn = document.getElementById('checkout-selected-btn');
+    var warningEl = document.getElementById('checkout-warning-top');
+    var selectedCountEl = document.getElementById('selected-count');
+    var selectedTotalEl = document.getElementById('selected-total');
+    var checkboxes = Array.prototype.slice.call(document.querySelectorAll('.checkout-product-checkbox'));
+    var cartRows = Array.prototype.slice.call(document.querySelectorAll('tr.cart-row'));
+    if (!checkoutBtn) return;
+
+    function formatMoney(num) {
+        return Number(num || 0).toLocaleString('en-US') + 'đ';
+    }
+
+    function recalcRow(row) {
+        var unit = Number(row.getAttribute('data-unit-price') || 0);
+        var qtyInput = row.querySelector('.quantity-field-cart');
+        var qty = Number(qtyInput ? qtyInput.value : 0);
+        var rowTotal = unit * qty;
+        var totalCell = row.querySelector('.row-total');
+        if (totalCell) totalCell.textContent = formatMoney(rowTotal);
+    }
+
+    function recalcSummary() {
+        var selectedItems = 0;
+        var selectedTotal = 0;
+        cartRows.forEach(function(row) {
+            var checkbox = row.querySelector('.checkout-product-checkbox');
+            var qtyInput = row.querySelector('.quantity-field-cart');
+            var unit = Number(row.getAttribute('data-unit-price') || 0);
+            var qty = Number(qtyInput ? qtyInput.value : 0);
+            if (checkbox && checkbox.checked) {
+                selectedItems += qty;
+                selectedTotal += unit * qty;
+            }
+        });
+        if (selectedCountEl) selectedCountEl.textContent = selectedItems + ' sản phẩm';
+        if (selectedTotalEl) selectedTotalEl.textContent = formatMoney(selectedTotal);
+    }
+
+    function syncQtyToServer(productId, quantity, row) {
+        var body = new URLSearchParams();
+        body.append('ajax_update_qty', '1');
+        body.append('product_id', String(productId));
+        body.append('quantity', String(quantity));
+        fetch(window.location.href, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+            body: body.toString()
+        }).then(function(res) {
+            return res.json();
+        }).then(function(data) {
+            if (!data || !data.ok || !row) return;
+            var qtyInput = row.querySelector('.quantity-field-cart');
+            if (qtyInput && Number(qtyInput.value) !== Number(data.quantity)) {
+                qtyInput.value = Number(data.quantity);
+                recalcRow(row);
+                recalcSummary();
+            }
+        }).catch(function() {});
+    }
+
+    cartRows.forEach(function(row) {
+        var productId = Number(row.getAttribute('data-product-id') || 0);
+        var minusBtn = row.querySelector('.button-minus');
+        var plusBtn = row.querySelector('.button-plus');
+        var qtyInput = row.querySelector('.quantity-field-cart');
+        var checkbox = row.querySelector('.checkout-product-checkbox');
+
+        if (checkbox) {
+            checkbox.addEventListener('change', function() {
+                if (warningEl && checkbox.checked) warningEl.style.display = 'none';
+                recalcSummary();
+            });
+        }
+
+        if (minusBtn && qtyInput) {
+            minusBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                var qty = Number(qtyInput.value || 1);
+                qty = Math.max(1, qty - 1);
+                qtyInput.value = qty;
+                recalcRow(row);
+                recalcSummary();
+                if (productId > 0) syncQtyToServer(productId, qty, row);
+            });
+        }
+
+        if (plusBtn && qtyInput) {
+            plusBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                var qty = Number(qtyInput.value || 1) + 1;
+                qtyInput.value = qty;
+                recalcRow(row);
+                recalcSummary();
+                if (productId > 0) syncQtyToServer(productId, qty, row);
+            });
+        }
+    });
+
+    recalcSummary();
+
+    checkoutBtn.addEventListener('click', function() {
+        var checked = document.querySelectorAll('.checkout-product-checkbox:checked');
+        if (!checked.length) {
+            if (warningEl) {
+                warningEl.textContent = 'Vui lòng chọn ít nhất 1 sản phẩm...';
+                warningEl.style.display = 'block';
+            }
+            window.scrollTo({ top: warningEl ? warningEl.offsetTop - 120 : 0, behavior: 'smooth' });
+            return;
+        }
+        if (warningEl) {
+            warningEl.style.display = 'none';
+        }
+
+        var form = document.createElement('form');
+        form.method = 'post';
+        form.action = 'index.php?url=thanh-toan';
+
+        checked.forEach(function(item) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_product_ids[]';
+            input.value = item.value;
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+    });
+})();
+</script>
