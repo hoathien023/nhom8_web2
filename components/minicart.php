@@ -62,7 +62,7 @@
                         </div>
                     </div>
                 </div>
-                <button type="button" class="mini-cart-remove-btn js-mini-cart-remove" data-cart-id="<?=$cart_id?>" title="Xóa sản phẩm" aria-label="Xóa sản phẩm">
+                <button type="button" class="mini-cart-remove-btn js-mini-cart-remove" data-cart-id="<?=$cart_id?>" data-product-id="<?=$product_id?>" title="Xóa sản phẩm" aria-label="Xóa sản phẩm">
                     <i class="fa fa-times"></i>
                 </button>
             </div>

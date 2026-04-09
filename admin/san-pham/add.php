@@ -4,6 +4,7 @@
 
     $error = array(
         'name' => '',
+        'sku' => '',
         'unit' => '',
         'image' => '',
         'quantity' => '',
@@ -14,6 +15,7 @@
 
     $temp = array(
         'name' => '',
+        'sku' => '',
         'image' => '',
         'unit' => 'Kg',
         'quantity' => '',
@@ -30,6 +32,7 @@
 
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["themsanpham"])) {
         $name = trim($_POST["name"]);
+        $sku = isset($_POST["sku"]) ? strtoupper(trim($_POST["sku"])) : '';
         $unit = trim($_POST["unit"]);
         $category_id = $_POST["category_id"];
         $image = $_FILES["image"]['name'];
@@ -59,6 +62,16 @@
 
         if(strlen($name) > 255) {
             $error['name']= 'Tên sản phẩm tối đa 255 ký tự';
+        }
+
+        if (empty($sku)) {
+            $error['sku'] = 'Mã sản phẩm (SKU) không được để trống';
+        } elseif (strlen($sku) > 64) {
+            $error['sku'] = 'SKU tối đa 64 ký tự';
+        } elseif (!preg_match('/^[A-Z0-9\-_]+$/', $sku)) {
+            $error['sku'] = 'SKU chỉ gồm chữ in hoa, số, dấu gạch nối hoặc gạch dưới';
+        } elseif ($ProductModel->is_sku_exists($sku)) {
+            $error['sku'] = 'SKU đã tồn tại';
         }
 
         if(empty($unit)) {
@@ -98,7 +111,7 @@
                 }
 
                 try {
-                    $ProductModel->insert_product($category_id, $name, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status);
+                    $ProductModel->insert_product($category_id, $name, $sku, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status);
                     $success = 'Thêm sản phẩm thành công';
                 } catch (Exception $e) {
                     $error_message = $e->getMessage();
@@ -109,6 +122,7 @@
 
         }else {
             $temp['name'] = $name;
+            $temp['sku'] = $sku;
             $temp['unit'] = $unit;
             $temp['cost_price'] = $cost_price;
             $temp['profit_rate'] = $profit_rate;
@@ -143,6 +157,12 @@
                     <input type="text" name="name" value="<?=$temp['name']?>" class="form-control" id="floatingInput" placeholder="Tên sản phẩm">
                     
                     <span class="text-danger" ><?=$error['name']?></span>
+                </div>
+
+                <label for="floatingSku">Mã sản phẩm (SKU)</label>
+                <div class="form-floating mb-3">
+                    <input type="text" name="sku" value="<?=$temp['sku']?>" class="form-control" id="floatingSku" placeholder="Ví dụ: SP-TAO-001">
+                    <span class="text-danger"><?=$error['sku']?></span>
                 </div>
                 
 

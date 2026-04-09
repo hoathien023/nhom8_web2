@@ -24,8 +24,8 @@ require_once "models/OrderModel.php";
 require_once "models/PostModel.php";
 require_once "models/AddressModel.php";
 define('BASE_URL', 'index.php?url=');
-define('URL_MOMO', 'http://localhost/DUAN_TRAICAY/cam-on');
-define('URL_ORDER', 'http://localhost/DUAN_TRAICAY/don-hang');
+define('URL_MOMO', 'index.php?url=cam-on');
+define('URL_ORDER', 'index.php?url=don-hang');
 
 // Đồng bộ trạng thái khóa tài khoản theo DB cho mọi request phía user.
 if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
@@ -35,6 +35,47 @@ if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
         $_SESSION['locked_message'] = 'Tài khoản đã bị khóa';
         header("Location: index.php?url=dang-nhap");
         exit();
+    }
+
+    // Đồng bộ dữ liệu user-side khi admin ẩn/xóa sản phẩm.
+    // Mục tiêu: sản phẩm bị ẩn phải tự mất ở user ngay, wishlist count cũng tự giảm.
+    $current_user_id = (int)$_SESSION['user']['id'];
+
+    // Tự động hủy đơn chuyển khoản quá hạn 10 phút trên mọi trang user.
+    // Chỉ cần còn request đi qua index.php là sẽ đồng bộ theo thời gian thực ở DB.
+    $OrderModel->cancel_expired_bank_transfer_orders($current_user_id);
+
+    // 1) Làm sạch wishlist theo trạng thái sản phẩm hiện tại.
+    if (!isset($_SESSION['wishlist']) || !is_array($_SESSION['wishlist'])) {
+        $_SESSION['wishlist'] = array();
+    }
+    if (!isset($_SESSION['wishlist'][$current_user_id]) || !is_array($_SESSION['wishlist'][$current_user_id])) {
+        $_SESSION['wishlist'][$current_user_id] = array();
+    }
+    $clean_wishlist_ids = array();
+    foreach ($_SESSION['wishlist'][$current_user_id] as $wish_pid) {
+        $wish_pid = (int)$wish_pid;
+        if ($wish_pid <= 0) {
+            continue;
+        }
+        $wish_product = $ProductModel->select_products_by_id($wish_pid); // đã lọc status = 1
+        if ($wish_product) {
+            $clean_wishlist_ids[] = $wish_pid;
+        }
+    }
+    $_SESSION['wishlist'][$current_user_id] = array_values(array_unique($clean_wishlist_ids));
+
+    // 2) Làm sạch cart: tự xóa item đã bị ẩn/xóa khỏi products.
+    $current_carts = $CartModel->select_all_carts($current_user_id);
+    foreach ($current_carts as $cart_item) {
+        $cart_pid = isset($cart_item['product_id']) ? (int)$cart_item['product_id'] : 0;
+        if ($cart_pid <= 0) {
+            continue;
+        }
+        $cart_product = $ProductModel->select_products_by_id($cart_pid); // đã lọc status = 1
+        if (!$cart_product) {
+            $CartModel->delete_product_in_cart($cart_pid, $current_user_id);
+        }
     }
 }
 
@@ -229,11 +270,16 @@ if (
 
     if (isset($_POST['ajax_remove_cart_item'])) {
         $cart_id = isset($_POST['cart_id']) ? (int)$_POST['cart_id'] : 0;
-        if ($cart_id <= 0) {
+        $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+        if ($cart_id > 0) {
+            $CartModel->delete_cart_by_id_and_user($cart_id, $user_id);
+        } elseif ($product_id > 0) {
+            // Fallback theo product_id cho các item không có cart_id hợp lệ trên UI.
+            $CartModel->delete_product_in_cart($product_id, $user_id);
+        } else {
             echo json_encode(array('ok' => false, 'message' => 'Mục giỏ hàng không hợp lệ.'));
             exit();
         }
-        $CartModel->delete_cart_by_id_and_user($cart_id, $user_id);
         $summary = $get_cart_summary($user_id);
         echo json_encode(array(
             'ok' => true,
@@ -288,14 +334,14 @@ if (!isset($_GET['url'])) {
             require_once "views/checkout-address.php";
             break;
         case 'thanh-toan-momo':
-            require_once "views/checkout/checkout_momo.php";
-            break;
+            header("Location: index.php?url=thanh-toan");
+            exit();
         case 'thanh-toan-momo-address':
-            require_once "views/checkout/momo-address.php";
-            break;
+            header("Location: index.php?url=thanh-toan");
+            exit();
         case 'thanh-toan-momo-address-2':
-            require_once "views/checkout/momo-address-2.php";
-            break;
+            header("Location: index.php?url=thanh-toan");
+            exit();
         case 'thanh-toan-ngan-hang':
             require_once "views/checkout/bank-transfer.php";
             break;

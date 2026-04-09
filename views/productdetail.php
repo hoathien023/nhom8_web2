@@ -23,6 +23,7 @@
     $wishlist_notice = '';
     $wishlist_is_error = false;
     $is_in_wishlist = false;
+    $wishlist_ids = array();
 
     if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
         $wishlist_user_id = (int)$_SESSION['user']['id'];
@@ -276,18 +277,24 @@
             </div>
             <?php
                     foreach ($similar_product as $value) {
-                        if(is_array($value)) {
-                            extract($value);
-                            $discount_percentage = $ProductModel->discount_percentage($price, $sale_price);
+                        if (!is_array($value)) {
+                            continue;
                         }
-                    
+                        extract($value);
+                        if ((int)$product_id === (int)$id_sp) {
+                            continue;
+                        }
+                        $discount_percentage = $ProductModel->discount_percentage($price, $sale_price);
+                        $is_similar_in_wishlist = in_array((int)$product_id, $wishlist_ids, true);
+                        $similar_wishlist_form_id = 'wishlist-similar-' . (int)$product_id;
                 ?>
             <div class="col-lg-3 col-md-4 col-sm-6 mix">
                 <div class="product__item sale">
-                    <div class="product__item__pic set-bg" data-setbg="upload/<?=$image?>">
+                    <div class="product__item__pic set-bg" data-setbg="upload/<?=$image?>"
+                        onclick="window.location.href='index.php?url=chitietsanpham&id_sp=<?=$product_id?>&id_dm=<?=$category_id?>'">
 
                         <div class="label_right sale">-<?=$discount_percentage?></div>
-                        <ul class="product__hover">
+                        <ul class="product__hover" onclick="event.stopPropagation();">
                             <li><a href="upload/<?=$image?> " class="image-popup"><span class="arrow_expand"></span></a>
                             </li>
                             <li>
@@ -296,17 +303,23 @@
                             </li>
 
                             <li>
-                                <form action="blog.html" method="post">
-                                    <input type="hidden" name="product_id">
-                                    <input type="hidden" name="user_id">
-                                    <input type="hidden" name="name">
-                                    <input type="hidden" name="price">
-                                    <input type="hidden" name="quantity">
-                                    <input type="hidden" name="image">
+                                <?php if(isset($_SESSION['user'])) {?>
+                                <form action="index.php?url=gio-hang" method="post">
+                                    <input value="<?=$product_id?>" type="hidden" name="product_id">
+                                    <input value="<?=$_SESSION['user']['id']?>" type="hidden" name="user_id">
+                                    <input value="<?=$name?>" type="hidden" name="name">
+                                    <input value="<?=$image?>" type="hidden" name="image">
+                                    <input value="<?=$sale_price?>" type="hidden" name="price">
+                                    <input value="1" type="hidden" name="product_quantity">
                                     <button type="submit" name="add_to_cart">
                                         <a href="#"><span class="icon_bag_alt"></span></a>
                                     </button>
                                 </form>
+                                <?php } else { ?>
+                                <button type="button" onclick="alert('Vui lòng đăng nhập để thực hiện chức năng');">
+                                    <a href="index.php?url=dang-nhap"><span class="icon_bag_alt"></span></a>
+                                </button>
+                                <?php } ?>
                             </li>
 
                         </ul>
@@ -319,11 +332,27 @@
                             </a>
                         </h6>
                         <div class="rating">
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
+                            <div class="rating-stars">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                            </div>
+                            <?php if (isset($_SESSION['user'])): ?>
+                            <button type="button" class="wishlist-inline-btn js-wishlist-toggle"
+                                onclick="document.getElementById('<?=$similar_wishlist_form_id?>').requestSubmit();"
+                                title="<?=$is_similar_in_wishlist ? 'Bỏ yêu thích' : 'Thêm yêu thích'?>">
+                                <span class="<?=$is_similar_in_wishlist ? 'fa fa-heart' : 'icon_heart_alt'?>"
+                                    style="color: <?=$is_similar_in_wishlist ? '#dc3545' : '#1f1f1f'?>;"></span>
+                            </button>
+                            <form id="<?=$similar_wishlist_form_id?>" action="index.php?url=yeu-thich" method="post" class="wishlist-inline-form" style="display:none;">
+                                <input type="hidden" name="wishlist_action" value="<?=$is_similar_in_wishlist ? 'remove' : 'add'?>">
+                                <input type="hidden" name="product_id" value="<?=$product_id?>">
+                                <input type="hidden" name="redirect_to" value="index.php?url=chitietsanpham&id_sp=<?=$id_sp?>&id_dm=<?=$id_danhmuc?>">
+                                <input type="hidden" name="ajax_wishlist" value="1">
+                            </form>
+                            <?php endif; ?>
                         </div>
                         <div class="product__price"><?=$ProductModel->formatted_price($sale_price); ?>
                             <span><?=$ProductModel->formatted_price($price); ?> </span>
@@ -355,6 +384,40 @@
     text-transform: uppercase;
     background: #ca1515;
     border-radius: 5px;
+}
+
+.product__item__text .rating {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: auto;
+    gap: 12px;
+}
+
+.rating-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.wishlist-inline-btn {
+    border: none;
+    background: transparent;
+    padding: 0;
+    line-height: 1;
+    font-size: 17px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.product__item {
+    transition: transform .22s ease, box-shadow .22s ease;
+}
+
+.product__item:hover {
+    transform: scale(1.03);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
 }
 </style>
 
@@ -516,12 +579,59 @@
         });
     }
 
+    function bindInlineWishlistAjax() {
+        document.addEventListener('submit', function(e) {
+            var form = e.target;
+            if (!form || !form.classList || !form.classList.contains('wishlist-inline-form')) return;
+            e.preventDefault();
+            var data = new URLSearchParams(new FormData(form));
+            fetch(form.getAttribute('action') || 'index.php?url=yeu-thich', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: data.toString()
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(json) {
+                if (!json || !json.ok) {
+                    if (json && json.requires_login) {
+                        window.location.href = 'index.php?url=dang-nhap';
+                        return;
+                    }
+                    showWishlistNotice((json && json.message) || 'Không thể cập nhật yêu thích.', true);
+                    return;
+                }
+
+                var actionInput = form.querySelector('input[name="wishlist_action"]');
+                if (actionInput) {
+                    actionInput.value = (actionInput.value === 'add') ? 'remove' : 'add';
+                }
+                var trigger = document.querySelector('[onclick*="' + form.id + '"] span');
+                if (trigger) {
+                    var isAdd = actionInput && actionInput.value === 'remove';
+                    trigger.className = isAdd ? 'fa fa-heart' : 'icon_heart_alt';
+                    trigger.style.color = isAdd ? '#dc3545' : '#1f1f1f';
+                }
+                if (typeof json.count !== 'undefined') {
+                    document.querySelectorAll('.js-wishlist-count').forEach(function(el) {
+                        el.textContent = json.count;
+                    });
+                }
+                showWishlistNotice(json.message || 'Đã cập nhật danh sách yêu thích.', false);
+            })
+            .catch(function() {
+                showWishlistNotice('Không thể cập nhật yêu thích.', true);
+            });
+        });
+    }
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', bindProductQtyValidation);
         document.addEventListener('DOMContentLoaded', bindProductWishlistAjax);
+        document.addEventListener('DOMContentLoaded', bindInlineWishlistAjax);
     } else {
         bindProductQtyValidation();
         bindProductWishlistAjax();
+        bindInlineWishlistAjax();
     }
 })();
 </script>

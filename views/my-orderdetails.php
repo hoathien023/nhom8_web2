@@ -2,6 +2,11 @@
 if (isset($_SESSION['user'])) {
     $user_id = $_SESSION['user']['id'];
     $order_id = isset($_GET['id']) && $_GET['id'] > 0 ? (int)$_GET['id'] : 0;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_bank_transfer_order']) && $order_id > 0) {
+        $OrderModel->cancel_pending_bank_transfer_order($user_id, $order_id);
+        header("Location: index.php?url=chi-tiet-don-hang&id=" . $order_id);
+        exit();
+    }
     $list_orders = $OrderModel->getFullOrderInformation($user_id, $order_id);
 
     if (!is_array($list_orders) || count($list_orders) === 0) {
@@ -17,7 +22,13 @@ if (isset($_SESSION['user'])) {
 
     $order_status = 'Chưa xác nhận';
     $status_class = 'pending';
-    if ($status == 2) {
+    $is_waiting_bank_payment = ((string)($payment_method ?? '') === 'bank')
+        && ((string)($payment_status ?? '') === 'pending')
+        && ((int)$status === 1);
+    if ($is_waiting_bank_payment) {
+        $order_status = 'Đang chờ thanh toán';
+        $status_class = 'pending';
+    } elseif ($status == 2) {
         $order_status = 'Đã xác nhận';
         $status_class = 'confirmed';
     } elseif ($status == 3) {
@@ -139,6 +150,40 @@ if (isset($_SESSION['user'])) {
                             <span>Ghi chú</span>
                             <strong><?=($note !== '' ? $note : '-')?></strong>
                         </div>
+                        <div class="summary-row">
+                            <span>Phương thức thanh toán</span>
+                            <strong><?=((string)($payment_method ?? '') === 'bank') ? 'Chuyển khoản ngân hàng' : 'Thanh toán khi nhận hàng (COD)'?></strong>
+                        </div>
+                        <?php if ((string)($payment_method ?? '') === 'bank'): ?>
+                        <div class="summary-row">
+                            <span>Trạng thái thanh toán</span>
+                            <strong>
+                                <?php
+                                    if ((string)($payment_status ?? '') === 'pending' && (int)$status === 1) {
+                                        echo 'Đang chờ thanh toán';
+                                    } elseif ((string)($payment_status ?? '') === 'submitted') {
+                                        echo 'Đã gửi xác nhận chuyển khoản';
+                                    } elseif ((string)($payment_status ?? '') === 'expired' || (int)$status === 5) {
+                                        echo 'Quá hạn thanh toán';
+                                    } else {
+                                        echo 'Đang xử lý';
+                                    }
+                                ?>
+                            </strong>
+                        </div>
+                        <?php if (!empty($payment_deadline)): ?>
+                        <div class="summary-row">
+                            <span>Hạn thanh toán</span>
+                            <strong><?=$BaseModel->date_format($payment_deadline, '')?></strong>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($is_waiting_bank_payment): ?>
+                        <div class="summary-row">
+                            <span>Thanh toán đơn hàng</span>
+                            <strong><a href="index.php?url=thanh-toan-ngan-hang&id=<?=$order_id?>">Mở trang QR để thanh toán</a></strong>
+                        </div>
+                        <?php endif; ?>
+                        <?php endif; ?>
                         <div class="summary-row total">
                             <span>Thành tiền</span>
                             <strong><?=number_format($total)?>₫</strong>
@@ -150,6 +195,12 @@ if (isset($_SESSION['user'])) {
             <div class="order-detail-actions">
                 <a href="index.php?url=don-hang" class="btn order-btn-light"><i class="fa fa-chevron-left"></i> Quay lại đơn mua</a>
                 <div class="order-detail-actions-right">
+                    <?php if ($is_waiting_bank_payment): ?>
+                        <a href="index.php?url=thanh-toan-ngan-hang&id=<?=$order_id?>" class="site-btn">Thanh toán đơn hàng</a>
+                        <form method="post" action="" class="d-inline-block mb-0">
+                            <button type="submit" name="cancel_bank_transfer_order" value="1" class="site-btn order-btn-cancel-payment">Hủy thanh toán</button>
+                        </form>
+                    <?php endif; ?>
                     <?php if ((int)$status === 4): ?>
                         <a href="index.php?url=lien-he&from_order=<?=$order_id?>" class="site-btn order-btn-complaint">Khiếu nại</a>
                     <?php endif; ?>
@@ -334,6 +385,10 @@ if (isset($_SESSION['user'])) {
 
 .order-btn-complaint {
     background: #f59e0b;
+}
+
+.order-btn-cancel-payment {
+    background: #ef4444;
 }
 
 .order-btn-rebuy {

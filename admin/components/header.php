@@ -23,7 +23,7 @@
         <div class="sidebar pe-4 pb-3">
             <nav class="navbar bg-light navbar-light">
                 <a href="index.php" class="navbar-brand mx-4 mb-3">
-                    <h3 class="text-primary"><i class="fa fa fa-user me-2"></i>Trái cây</h3>
+                    <h3 class="text-primary"><i class="fa fa fa-user me-2"></i>ADMIN</h3>
                 </a>
                 <!-- <div class="d-flex align-items-center ms-4 mb-4">
                     <div class="position-relative">

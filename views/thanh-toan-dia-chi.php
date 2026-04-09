@@ -21,8 +21,7 @@ try {
         $arr_quantity = $_POST["quantity"];
         $arr_price = $_POST["price"];
         if ($payment_method === 'momo') {
-            header("Location: index.php?url=thanh-toan-momo-address-2");
-            exit();
+            $payment_method = 'cod';
         }
 
         $items = [];
@@ -34,7 +33,7 @@ try {
             ];
         }
 
-        $order_id = $OrderModel->create_order_with_stock_validation($user_id, $total, $address, $phone, $note, $items);
+        $order_id = $OrderModel->create_order_with_stock_validation($user_id, $total, $address, $phone, $note, $items, $payment_method);
         if(!empty($order_id)) {
             $_SESSION['last_order_summary'] = array(
                 'order_id' => $order_id,
@@ -48,7 +47,7 @@ try {
                 unset($_SESSION['checkout_selected_product_ids']);
             }
             if ($payment_method === 'bank') {
-                header("Location: index.php?url=thanh-toan-ngan-hang");
+                header("Location: index.php?url=thanh-toan-ngan-hang&id=" . (int)$order_id);
                 exit();
             }
             header("Location: cam-on");
@@ -228,11 +227,6 @@ try {
                                 <input type="radio" name="payment_method" value="bank">
                                 <span class="payment-icon"><i class="fa fa-university"></i></span>
                                 <span>Chuyển khoản ngân hàng</span>
-                            </label>
-                            <label class="payment-option">
-                                <input type="radio" name="payment_method" value="momo">
-                                <span class="payment-icon"><i class="fa fa-credit-card"></i></span>
-                                <span>Ví MoMo</span>
                             </label>
                             <div id="bank-transfer-note" class="bank-transfer-note" style="display:none;">
                                 Chuyển khoản an toàn: chỉ chuyển vào tài khoản chính chủ do cửa hàng cung cấp sau khi xác nhận đơn. Không chia sẻ OTP, mã PIN, mật khẩu ngân hàng cho bất kỳ ai.

@@ -22,7 +22,7 @@
 
             <h2 class="thanks-title">Đặt hàng thành công!</h2>
             <p class="thanks-subtitle">
-                Cảm ơn bạn đã tin tưởng KLEVER FRUIT. Đơn hàng của bạn đã được ghi nhận và đang chờ xử lý.
+                Cảm ơn bạn đã tin tưởng 8 Fruits. Đơn hàng của bạn đã được ghi nhận và đang chờ xử lý.
             </p>
 
             <?php if (is_array($order_summary)): ?>

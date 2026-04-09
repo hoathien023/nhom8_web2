@@ -1,6 +1,6 @@
 <?php
     include "mailer/send-mail.php";
-    define('URL_RECOVERY', 'http://localhost/DUAN1_BOOKSTORE/');
+    define('URL_RECOVERY', 'index.php?url=');
 
     $success = '';
     $error ='';

@@ -7,9 +7,9 @@
             <div class="col-lg-4 col-md-6 col-sm-7">
                 <div class="footer__about">
                     <div class="footer__logo">
-                        <a href="index.php"><img src="upload/logo/logo-trai-cay.png" alt=""></a>
+                        <a href="index.php"><img src="upload/logo/logo-8fruits.png?v=20260409-1" alt="8 Fruits"></a>
                     </div>
-                    <p>Chào mừng bạn đến với Khatoco nơi cung cấp quần áo chất lượng</p>
+                    <p>Chào mừng bạn đến với 8 Fruits - nơi cung cấp trái cây tươi ngon và quà tặng sức khỏe.</p>
 
                 </div>
             </div>
@@ -68,6 +68,41 @@
     </div>
 </footer>
 <!-- Footer Section End -->
+
+<style>
+/* Footer visual unification */
+.footer,
+.footer .container,
+.footer .row,
+.footer__copyright__text {
+    background: #f6f8fc !important;
+}
+
+.footer {
+    border-top: 1px solid #e3e8f1;
+}
+
+.footer__logo a {
+    display: inline-flex;
+    align-items: center;
+    width: 205px;
+    height: 72px;
+    overflow: visible;
+}
+
+.footer__logo img {
+    width: 190px;
+    max-width: 190px;
+    max-height: 66px;
+    transform: none;
+    mix-blend-mode: normal;
+    opacity: 1;
+}
+
+.footer__about p {
+    margin-top: 6px;
+}
+</style>
 
 <!-- Search Begin -->
 <div class="search-model">
@@ -258,13 +293,17 @@ window.__cartToastSuccess = "<?=htmlspecialchars($_SESSION['cart_toast_success']
 
             if (removeBtn) {
                 var cartId = Number(removeBtn.getAttribute('data-cart-id') || 0);
-                if (cartId <= 0) return;
+                var productId = Number(removeBtn.getAttribute('data-product-id') || 0);
+                if (cartId <= 0 && productId <= 0) return;
                 var row = removeBtn.closest('.mini-cart-item');
                 if (row) row.style.opacity = '0.35';
-                postMiniCartAction({
-                    ajax_remove_cart_item: 1,
-                    cart_id: cartId
-                }).then(function(data) {
+                var removePayload = { ajax_remove_cart_item: 1 };
+                if (cartId > 0) {
+                    removePayload.cart_id = cartId;
+                } else {
+                    removePayload.product_id = productId;
+                }
+                postMiniCartAction(removePayload).then(function(data) {
                     if (data && data.ok) {
                         if (row) row.remove();
                         if (typeof data.cart_count !== 'undefined') {
@@ -276,6 +315,8 @@ window.__cartToastSuccess = "<?=htmlspecialchars($_SESSION['cart_toast_success']
                         if (!document.querySelector('.mini-cart-item[data-product-id]')) {
                             refreshMiniCartPreview();
                         }
+                    } else {
+                        if (row) row.style.opacity = '1';
                     }
                 }).catch(function() {
                     if (row) row.style.opacity = '1';

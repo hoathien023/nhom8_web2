@@ -1,6 +1,7 @@
 <?php
     $error = array(
         'name' => '',
+        'sku' => '',
         'unit' => '',
         'image' => '',
         'quantity' => '',
@@ -20,6 +21,7 @@
             exit();
         }
         extract($product);
+        $sku = isset($product['sku']) ? (string)$product['sku'] : '';
     }else {
         header("Location: index.php?quanli=danh-sach-san-pham");
         exit();
@@ -29,8 +31,10 @@
 
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["update_product"])) {
         $name = trim($_POST["name"]);
+        $sku = isset($_POST["sku"]) ? strtoupper(trim($_POST["sku"])) : '';
         $category_id = $_POST["category_id"];
         $new_image = $_FILES["image"]['name'];
+        $remove_image = isset($_POST['remove_image']) ? 1 : 0;
 
         $quantity = $_POST["quantity"];
         $cost_price = $_POST["cost_price"];
@@ -45,6 +49,16 @@
 
         if(strlen($name) > 255) {
             $error['name']= 'Tên sản phẩm tối đa 255 ký tự';
+        }
+
+        if (empty($sku)) {
+            $error['sku'] = 'Mã sản phẩm (SKU) không được để trống';
+        } elseif (strlen($sku) > 64) {
+            $error['sku'] = 'SKU tối đa 64 ký tự';
+        } elseif (!preg_match('/^[A-Z0-9\-_]+$/', $sku)) {
+            $error['sku'] = 'SKU chỉ gồm chữ in hoa, số, dấu gạch nối hoặc gạch dưới';
+        } elseif ($ProductModel->is_sku_exists($sku, (int)$product_id)) {
+            $error['sku'] = 'SKU đã tồn tại';
         }
 
         if($cost_price <0 ) {
@@ -76,7 +90,10 @@
                 if (empty($image_to_save)) {
                     $image_to_save = $product['image'];
                 }
-                $ProductModel->update_product($category_id, $name, $unit, $image_to_save, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status, $product_id);
+                if ($remove_image === 1) {
+                    $image_to_save = 'default-product.jpg';
+                }
+                $ProductModel->update_product($category_id, $name, $sku, $unit, $image_to_save, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status, $product_id);
 
                 setcookie('success_update', 'Cập nhật sản phẩm thành công', time() + 5, '/');
                 header("Location: index.php?quanli=cap-nhat-san-pham&id=".$product_id);
@@ -95,6 +112,7 @@
     $current_status = (int)$product['status'];
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $name = isset($name) ? $name : $product['name'];
+        $sku = isset($sku) ? $sku : ($product['sku'] ?? '');
         $unit = 'Kg';
         $cost_price = isset($cost_price) ? $cost_price : ($product['cost_price'] ?? 0);
         $profit_rate = isset($profit_rate) ? $profit_rate : ($product['profit_rate'] ?? 0);
@@ -133,6 +151,12 @@
                     <input type="text" name="name" value="<?=$name?>" class="form-control" id="floatingInput" placeholder="Tên sản phẩm">
                     
                     <span class="text-danger" ><?=$error['name']?></span>
+                </div>
+
+                <label for="floatingSku">Mã sản phẩm (SKU)</label>
+                <div class="form-floating mb-3">
+                    <input type="text" name="sku" value="<?=$sku?>" class="form-control" id="floatingSku" placeholder="Ví dụ: SP-TAO-001">
+                    <span class="text-danger"><?=$error['sku']?></span>
                 </div>
                 
 
@@ -195,6 +219,10 @@
                     <input style="background-color: #fff" class="form-control form-control-sm" name="image" id="formFileSm" type="file">
                     <div class="my-2">
                         <img src="../upload/<?=$image?>" style="width: 100%;" class="img-fluid" alt="">
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="remove_image" id="removeImageCheck" value="1">
+                        <label class="form-check-label" for="removeImageCheck">Bỏ hình hiện tại (đặt về mặc định)</label>
                     </div>
                 </div>
 

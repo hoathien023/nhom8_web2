@@ -1,6 +1,23 @@
 <?php
     class OrderModel{
-        public function create_order_with_stock_validation($user_id, $total, $address, $phone, $note, $items) {
+        private $orders_column_cache = array();
+
+        private function has_orders_column($column_name) {
+            if (array_key_exists($column_name, $this->orders_column_cache)) {
+                return $this->orders_column_cache[$column_name];
+            }
+            $sql = "SELECT COUNT(*) AS total
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'orders'
+                      AND COLUMN_NAME = ?";
+            $row = pdo_query_one($sql, $column_name);
+            $exists = ((int)($row['total'] ?? 0) > 0);
+            $this->orders_column_cache[$column_name] = $exists;
+            return $exists;
+        }
+
+        public function create_order_with_stock_validation($user_id, $total, $address, $phone, $note, $items, $payment_method = 'cod') {
             $conn = pdo_get_connection();
             try {
                 $conn->beginTransaction();
@@ -29,8 +46,30 @@
                     }
                 }
 
-                $stmtOrder = $conn->prepare("INSERT INTO orders(user_id, total, address, phone, note) VALUES(?,?,?,?,?)");
-                $stmtOrder->execute([$user_id, $total, $address, $phone, $note]);
+                $columns = array('user_id', 'total', 'address', 'phone', 'note');
+                $values = array($user_id, $total, $address, $phone, $note);
+
+                $payment_method = strtolower(trim((string)$payment_method));
+                if (!in_array($payment_method, array('cod', 'bank'), true)) {
+                    $payment_method = 'cod';
+                }
+
+                if ($this->has_orders_column('payment_method')) {
+                    $columns[] = 'payment_method';
+                    $values[] = $payment_method;
+                }
+                if ($this->has_orders_column('payment_status')) {
+                    $columns[] = 'payment_status';
+                    $values[] = ($payment_method === 'bank') ? 'pending' : 'none';
+                }
+                if ($this->has_orders_column('payment_deadline')) {
+                    $columns[] = 'payment_deadline';
+                    $values[] = ($payment_method === 'bank') ? date('Y-m-d H:i:s', time() + 10 * 60) : null;
+                }
+
+                $placeholders = implode(',', array_fill(0, count($columns), '?'));
+                $stmtOrder = $conn->prepare("INSERT INTO orders(" . implode(',', $columns) . ") VALUES($placeholders)");
+                $stmtOrder->execute($values);
                 $order_id = (int)$conn->lastInsertId();
 
                 $stmtDetail = $conn->prepare("INSERT INTO orderdetails(order_id, product_id, quantity, price) VALUES(?,?,?,?)");
@@ -77,7 +116,14 @@
 
         // Select thông tin đon hàng
         public function select_list_orders($user_id) {
-            $sql = "SELECT * FROM orders WHERE user_id = ? ORDER BY order_id DESC";
+            $this->cancel_expired_bank_transfer_orders((int)$user_id);
+            $payment_method_select = $this->has_orders_column('payment_method') ? "payment_method" : "'cod' AS payment_method";
+            $payment_status_select = $this->has_orders_column('payment_status') ? "payment_status" : "'none' AS payment_status";
+            $deadline_select = $this->has_orders_column('payment_deadline') ? "payment_deadline" : "NULL AS payment_deadline";
+            $sql = "SELECT *, {$payment_method_select}, {$payment_status_select}, {$deadline_select}
+                    FROM orders
+                    WHERE user_id = ?
+                    ORDER BY order_id DESC";
 
             return pdo_query($sql, $user_id);
         }
@@ -101,6 +147,10 @@
         }
 
         public function getFullOrderInformation($user_id, $order_id) {
+            $this->cancel_expired_bank_transfer_orders((int)$user_id);
+            $payment_method_select = $this->has_orders_column('payment_method') ? "orders.payment_method" : "'cod' AS payment_method";
+            $payment_status_select = $this->has_orders_column('payment_status') ? "orders.payment_status" : "'none' AS payment_status";
+            $deadline_select = $this->has_orders_column('payment_deadline') ? "orders.payment_deadline" : "NULL AS payment_deadline";
             $sql = "
                     SELECT
                     orders.order_id,
@@ -111,6 +161,9 @@
                     orders.phone AS order_phone,
                     orders.note,
                     orders.status,
+                    {$payment_method_select},
+                    {$payment_status_select},
+                    {$deadline_select},
                     users.full_name,
                     users.email,
                     users.phone AS user_phone,
@@ -133,6 +186,93 @@
             ";
 
             return pdo_query($sql, $user_id, $order_id);
+        }
+
+        public function get_order_by_id($user_id, $order_id) {
+            $payment_method_select = $this->has_orders_column('payment_method') ? "payment_method" : "'cod' AS payment_method";
+            $payment_status_select = $this->has_orders_column('payment_status') ? "payment_status" : "'none' AS payment_status";
+            $deadline_select = $this->has_orders_column('payment_deadline') ? "payment_deadline" : "NULL AS payment_deadline";
+            $sql = "SELECT order_id, user_id, total, status, {$payment_method_select}, {$payment_status_select}, {$deadline_select}
+                    FROM orders
+                    WHERE user_id = ? AND order_id = ?
+                    LIMIT 1";
+            return pdo_query_one($sql, (int)$user_id, (int)$order_id);
+        }
+
+        public function mark_bank_transfer_submitted($user_id, $order_id) {
+            $has_method = $this->has_orders_column('payment_method');
+            $has_status = $this->has_orders_column('payment_status');
+            $has_deadline = $this->has_orders_column('payment_deadline');
+
+            if ($has_method && $has_status) {
+                $sql = "UPDATE orders
+                        SET status = 2, payment_method = 'bank', payment_status = 'submitted'
+                        WHERE user_id = ?
+                          AND order_id = ?
+                          AND status = 1";
+                if ($has_deadline) {
+                    $sql .= " AND (payment_deadline IS NULL OR payment_deadline >= NOW())";
+                }
+                pdo_execute($sql, (int)$user_id, (int)$order_id);
+                return true;
+            }
+
+            // Fallback cho DB cũ chưa có cột payment_*: vẫn xác nhận đơn bình thường.
+            $sql = "UPDATE orders
+                    SET status = 2
+                    WHERE user_id = ?
+                      AND order_id = ?
+                      AND status = 1";
+            pdo_execute($sql, (int)$user_id, (int)$order_id);
+            return true;
+        }
+
+        public function cancel_pending_bank_transfer_order($user_id, $order_id) {
+            $has_method = $this->has_orders_column('payment_method');
+            $has_status = $this->has_orders_column('payment_status');
+
+            if ($has_method && $has_status) {
+                $sql = "UPDATE orders
+                        SET status = 5, payment_method = 'bank', payment_status = 'cancelled'
+                        WHERE user_id = ?
+                          AND order_id = ?
+                          AND status = 1";
+                pdo_execute($sql, (int)$user_id, (int)$order_id);
+                return true;
+            }
+
+            // Fallback cho DB cũ chưa có cột payment_*: vẫn hủy đơn bình thường.
+            $sql = "UPDATE orders
+                    SET status = 5
+                    WHERE user_id = ?
+                      AND order_id = ?
+                      AND status = 1";
+            pdo_execute($sql, (int)$user_id, (int)$order_id);
+            return true;
+        }
+
+        public function force_update_order_status($user_id, $order_id, $status_value) {
+            $sql = "UPDATE orders SET status = ? WHERE user_id = ? AND order_id = ?";
+            pdo_execute($sql, (int)$status_value, (int)$user_id, (int)$order_id);
+        }
+
+        public function cancel_expired_bank_transfer_orders($user_id = 0) {
+            if (!$this->has_orders_column('payment_method') || !$this->has_orders_column('payment_status') || !$this->has_orders_column('payment_deadline')) {
+                return;
+            }
+            $sql = "UPDATE orders
+                    SET status = 5, payment_status = 'expired'
+                    WHERE status = 1
+                      AND payment_method = 'bank'
+                      AND payment_status = 'pending'
+                      AND payment_deadline IS NOT NULL
+                      AND payment_deadline < NOW()";
+            $args = array();
+            if ((int)$user_id > 0) {
+                $sql .= " AND user_id = ?";
+                $args[] = (int)$user_id;
+            }
+            pdo_execute($sql, ...$args);
         }
 
 

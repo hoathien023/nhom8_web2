@@ -40,7 +40,13 @@ if (isset($_SESSION['user'])) {
 
                 $order_status = 'Chưa xác nhận';
                 $status_class = 'pending';
-                if ($status == 2) {
+                $is_waiting_bank_payment = ((string)($payment_method ?? '') === 'bank')
+                    && ((string)($payment_status ?? '') === 'pending')
+                    && ((int)$status === 1);
+                if ($is_waiting_bank_payment) {
+                    $order_status = 'Đang chờ thanh toán';
+                    $status_class = 'pending';
+                } elseif ($status == 2) {
                     $order_status = 'Đã xác nhận';
                     $status_class = 'confirmed';
                 } elseif ($status == 3) {
@@ -83,6 +89,9 @@ if (isset($_SESSION['user'])) {
                     <div class="order-foot-right">
                         <span class="order-total-text">Thành tiền:</span>
                         <span class="order-total-value"><?=number_format($total)?>₫</span>
+                        <?php if ($is_waiting_bank_payment): ?>
+                            <a href="index.php?url=thanh-toan-ngan-hang&id=<?=$order_id?>" class="site-btn order-btn-detail">Thanh toán đơn hàng</a>
+                        <?php endif; ?>
                         <a href="index.php?url=chi-tiet-don-hang&id=<?=$order_id?>" class="site-btn order-btn-detail">Xem chi tiết</a>
                     </div>
                 </div>

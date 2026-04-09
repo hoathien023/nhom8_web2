@@ -35,13 +35,18 @@
             return number_format((int)round((float)$cost_price), 0, ',', '.');
         }
 
-        public function insert_product($category_id, $name, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status) {
+        public function insert_product($category_id, $name, $sku, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status) {
             $columns = array('category_id', 'name', 'image', 'quantity', 'price', 'sale_price', 'details', 'short_description', 'status');
             $values = array($category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description, $status);
 
+            if ($this->has_products_column('sku')) {
+                array_splice($columns, 2, 0, 'sku');
+                array_splice($values, 2, 0, $sku);
+            }
             if ($this->has_products_column('unit')) {
-                array_splice($columns, 2, 0, 'unit');
-                array_splice($values, 2, 0, $unit);
+                $insert_pos = $this->has_products_column('sku') ? 3 : 2;
+                array_splice($columns, $insert_pos, 0, 'unit');
+                array_splice($values, $insert_pos, 0, $unit);
             }
             if ($this->has_products_column('cost_price')) {
                 $columns[] = 'cost_price';
@@ -55,6 +60,26 @@
             $placeholders = implode(',', array_fill(0, count($columns), '?'));
             $sql = "INSERT INTO products (" . implode(', ', $columns) . ") VALUES ($placeholders)";
             pdo_execute($sql, ...$values);
+        }
+
+        public function is_sku_exists($sku, $exclude_product_id = 0) {
+            if (!$this->has_products_column('sku')) {
+                return false;
+            }
+
+            $sku = trim((string)$sku);
+            if ($sku === '') {
+                return false;
+            }
+
+            $sql = "SELECT COUNT(*) AS total FROM products WHERE sku = ?";
+            $args = [$sku];
+            if ((int)$exclude_product_id > 0) {
+                $sql .= " AND product_id <> ?";
+                $args[] = (int)$exclude_product_id;
+            }
+            $row = pdo_query_one($sql, ...$args);
+            return (int)($row['total'] ?? 0) > 0;
         }
 
         public function select_products() {
@@ -325,7 +350,7 @@
             return $import_count > 0;
         }
 
-        public function update_product($category_id, $name, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status, $product_id) {
+        public function update_product($category_id, $name, $sku, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status, $product_id) {
             $sql = "UPDATE products SET 
             category_id = '".$category_id."', 
             name = '".$name."',";
@@ -334,6 +359,9 @@
                 $sql .= " image = '".$image."',";
             }
 
+            if ($this->has_products_column('sku')) {
+                $sql .= " sku = '".$sku."',";
+            }
             if ($this->has_products_column('unit')) {
                 $sql .= " unit = '".$unit."',";
             }

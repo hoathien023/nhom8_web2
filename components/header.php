@@ -37,7 +37,7 @@
                 </a></li>
         </ul>
         <div class="offcanvas__logo">
-            <a href="index.php"><img src="upload/logo/logo-trai-cay.png" alt=""></a>
+            <a href="index.php"><img src="upload/logo/logo-8fruits.png?v=20260409-1" alt="8 Fruits"></a>
         </div>
         <div id="mobile-menu-wrap"></div>
 
@@ -67,7 +67,7 @@
             <div class="row">
                 <div class="col-xl-3 col-lg-2">
                     <div class="header__logo">
-                        <a href="index.php"><img style="max-height: 30px;" src="upload/logo/logo-trai-cay.png"
+                        <a href="index.php"><img style="max-height: 30px;" src="upload/logo/logo-8fruits.png?v=20260409-1"
                                 alt=""></a>
                     </div>
                 </div>
@@ -152,3 +152,53 @@
         </div>
     </header>
     <!-- Header Section End -->
+
+<style>
+/* Brand logo tuning for 8 Fruits */
+.header__logo a {
+    display: inline-flex;
+    align-items: center;
+    width: 280px;
+    height: 64px;
+    overflow: visible;
+}
+
+.header__logo img {
+    width: 260px !important;
+    max-width: 260px;
+    max-height: 62px !important;
+    height: auto;
+    transform: none;
+    mix-blend-mode: normal;
+    opacity: 1;
+}
+
+.offcanvas__logo a {
+    display: inline-flex;
+    align-items: center;
+    width: 230px;
+    height: 64px;
+    overflow: visible;
+}
+
+.offcanvas__logo img {
+    width: 210px;
+    max-width: 210px;
+    max-height: 58px;
+    transform: none;
+    mix-blend-mode: normal;
+    opacity: 1;
+}
+
+@media (max-width: 991px) {
+    .header__logo a {
+        width: 210px;
+        height: 52px;
+    }
+    .header__logo img {
+        width: 190px !important;
+        max-width: 190px;
+        max-height: 48px !important;
+    }
+}
+</style>
