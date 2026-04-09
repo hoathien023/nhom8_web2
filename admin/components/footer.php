@@ -225,6 +225,26 @@ table.dataTable thead .dt-orderable-desc {
 })();
 </script>
 
+<script>
+// Tự ẩn thông báo sau vài giây để giao diện gọn hơn.
+(function () {
+    const alerts = document.querySelectorAll('.alert');
+    if (!alerts.length) return;
+
+    alerts.forEach(function (alertEl) {
+        setTimeout(function () {
+            alertEl.style.transition = 'opacity 0.4s ease';
+            alertEl.style.opacity = '0';
+            setTimeout(function () {
+                if (alertEl && alertEl.parentNode) {
+                    alertEl.parentNode.removeChild(alertEl);
+                }
+            }, 450);
+        }, 4000);
+    });
+})();
+</script>
+
 <!-- Template Javascript -->
 <script src="public_admin/js/main.js"></script>
 </body>

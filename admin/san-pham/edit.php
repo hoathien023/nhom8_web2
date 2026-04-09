@@ -36,7 +36,8 @@
         $cost_price = $_POST["cost_price"];
         $profit_rate = $_POST["profit_rate"];
         $sale_price = isset($_POST["sale_price"]) ? $_POST["sale_price"] : '';
-        $unit = trim($_POST["unit"]);
+        // Đơn vị tính cố định theo yêu cầu: Kg.
+        $unit = 'Kg';
         $status = isset($_POST["status"]) ? (int)$_POST["status"] : 1;
         $details = isset($_POST["details"]) ? $_POST["details"] : '';
         $short_description = isset($_POST["short_description"]) ? $_POST["short_description"] : '';
@@ -44,13 +45,6 @@
 
         if(strlen($name) > 255) {
             $error['name']= 'Tên sản phẩm tối đa 255 ký tự';
-        }
-
-        if(empty($unit)) {
-            $error['unit']= 'Đơn vị tính không được để trống';
-        }
-        if(strlen($unit) > 50) {
-            $error['unit']= 'Đơn vị tính tối đa 50 ký tự';
         }
 
         if($cost_price <0 ) {
@@ -101,7 +95,7 @@
     $current_status = (int)$product['status'];
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $name = isset($name) ? $name : $product['name'];
-        $unit = isset($unit) ? $unit : ($product['unit'] ?? 'Kg');
+        $unit = 'Kg';
         $cost_price = isset($cost_price) ? $cost_price : ($product['cost_price'] ?? 0);
         $profit_rate = isset($profit_rate) ? $profit_rate : ($product['profit_rate'] ?? 0);
         $price = isset($price) ? $price : $product['price'];
@@ -170,8 +164,8 @@
                 </div>
                 <label for="floatingInput">Đơn vị tính</label>
                 <div class="form-floating mb-3">
-                    <input type="text" value="<?=$unit?>" name="unit" class="form-control" id="floatingInput" placeholder="Đơn vị tính">
-                    <span class="text-danger" ><?=$error['unit']?></span>
+                    <input type="text" value="Kg" class="form-control" id="floatingInput" placeholder="Đơn vị tính" readonly>
+                    <input type="hidden" name="unit" value="Kg">
                 </div>
                 <label for="text-dark">Mô tả ngắn</label>
                 <div class="form-floating mb-3">
