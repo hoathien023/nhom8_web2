@@ -161,39 +161,9 @@ table.dataTable thead .dt-orderable-desc {
 </style>
 
 <script>
-// Hiển thị định dạng số có dấu chấm ngăn cách (ví dụ: 1.000.000)
-// để người dùng dễ đọc khi nhập các ô kiểu number trong trang quản trị.
+// Định dạng tiền tệ trực tiếp trong textbox khi nhập: 1000000 -> 1.000.000
+// Trước khi submit form sẽ tự bỏ dấu chấm để BE nhận số thuần.
 (function () {
-    function formatNumberPreview(rawValue) {
-        if (rawValue === '' || rawValue === null || typeof rawValue === 'undefined') {
-            return '';
-        }
-        const num = Number(rawValue);
-        if (!Number.isFinite(num)) {
-            return '';
-        }
-        return new Intl.NumberFormat('vi-VN', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 3
-        }).format(num);
-    }
-
-    function ensurePreviewElement(input) {
-        let preview = input.parentElement.querySelector('.number-preview');
-        if (!preview) {
-            preview = document.createElement('small');
-            preview.className = 'number-preview text-muted d-block mt-1';
-            input.parentElement.appendChild(preview);
-        }
-        return preview;
-    }
-
-    function updatePreview(input) {
-        const preview = ensurePreviewElement(input);
-        const formatted = formatNumberPreview(input.value);
-        preview.textContent = formatted !== '' ? ('Dạng hiển thị: ' + formatted) : '';
-    }
-
     function isMoneyInput(input) {
         const key = (
             (input.name || '') + ' ' +
@@ -211,15 +181,43 @@ table.dataTable thead .dt-orderable-desc {
         );
     }
 
-    const numberInputs = Array.from(document.querySelectorAll('input[type="number"]'))
-        .filter(isMoneyInput);
-    numberInputs.forEach(function (input) {
-        updatePreview(input);
+    function toDigits(raw) {
+        return String(raw || '').replace(/[^\d]/g, '');
+    }
+
+    function formatVnInteger(rawDigits) {
+        if (!rawDigits) return '';
+        const num = Number(rawDigits);
+        if (!Number.isFinite(num)) return '';
+        return new Intl.NumberFormat('vi-VN', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(num);
+    }
+
+    const moneyInputs = Array.from(document.querySelectorAll('input[type="number"]')).filter(isMoneyInput);
+
+    moneyInputs.forEach(function (input) {
+        // Đổi sang text để có thể hiển thị dấu chấm ngăn cách ngay trong ô.
+        input.type = 'text';
+        input.inputMode = 'numeric';
+        input.autocomplete = 'off';
+
+        input.value = formatVnInteger(toDigits(input.value));
+
         input.addEventListener('input', function () {
-            updatePreview(input);
+            const digits = toDigits(input.value);
+            input.value = formatVnInteger(digits);
         });
-        input.addEventListener('change', function () {
-            updatePreview(input);
+    });
+
+    document.querySelectorAll('form').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            moneyInputs.forEach(function (input) {
+                if (form.contains(input)) {
+                    input.value = toDigits(input.value);
+                }
+            });
         });
     });
 })();
