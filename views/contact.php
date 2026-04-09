@@ -24,7 +24,7 @@
                         <ul>
                             <li>
                                 <h6><i class="fa fa-map-marker"></i> Địa chỉ</h6>
-                                <p>khu Yên Sơn, Thuỵ Hương, Chương Mỹ, Hà Nội</p>
+                                <p>An Dương Vương, Quận 5, TP.HCM</p>
                             </li>
                             <li>
                                 <h6><i class="fa fa-phone"></i> Sô điện thoại</h6>
@@ -52,7 +52,7 @@
             <div class="col-lg-6 col-md-6">
                 <div class="contact__map">
                     <iframe
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3726.9800795185006!2d105.7004607!3d20.913121099999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31344def665bc727%3A0x6b9b39cae8be2b53!2zVHLGsOG7nW5nIFRIUFQgQ2jGsMahbmcgTeG7uSBB!5e0!3m2!1svi!2s!4v1748265593958!5m2!1svi!2s"
+                        src="https://maps.google.com/maps?q=Tr%C6%B0%E1%BB%9Dng%20%C4%90%E1%BA%A1i%20h%E1%BB%8Dc%20S%C3%A0i%20G%C3%B2n&z=16&output=embed"
                         height="780" style="border:0" allowfullscreen="">
                     </iframe>
 

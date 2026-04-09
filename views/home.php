@@ -5,6 +5,13 @@
 
     $product_limit_3 = $ProductModel->select_products_limit(3);
     $product_order_by = $ProductModel->select_products_order_by(3, 'ASC');
+    $wishlist_ids = array();
+    if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
+        $wishlist_user_id = (int)$_SESSION['user']['id'];
+        if (isset($_SESSION['wishlist'][$wishlist_user_id]) && is_array($_SESSION['wishlist'][$wishlist_user_id])) {
+            $wishlist_ids = $_SESSION['wishlist'][$wishlist_user_id];
+        }
+    }
 ?>
 
 <!-- Banner Section Begin -->
@@ -101,13 +108,17 @@
                 extract($product);
 
                 $discount_percentage = $ProductModel->discount_percentage($price, $sale_price);
+                $is_in_wishlist = in_array((int)$product_id, $wishlist_ids, true);
+                $wishlist_form_id = 'wishlist-home-' . (int)$product_id;
             ?>
             <div class="col-lg-3 col-md-4 col-sm-6 mix sach-1">
                 <div class="product__item sale">
-                    <div class="product__item__pic set-bg" data-setbg="upload/<?=$image?>">
+                    <div class="product__item__pic set-bg"
+                        data-setbg="upload/<?=$image?>"
+                        onclick="window.location.href='index.php?url=chitietsanpham&id_sp=<?=$product_id?>&id_dm=<?=$category_id?>'">
                         <!-- <div class="label sale">Sale</div> -->
                         <div class="label_right sale">-<?=$discount_percentage?></div>
-                        <ul class="product__hover">
+                        <ul class="product__hover" onclick="event.stopPropagation();">
                             <li><a href="upload/<?=$image?>" class="image-popup"><span class="arrow_expand"></span></a>
                             </li>
                             <li>
@@ -144,13 +155,30 @@
 
                     </div>
                     <div class="product__item__text">
-                        <h6 class="text-truncate-1"><a href=""><?=$name?></a></h6>
+                        <h6 class="text-truncate-1"><a href="index.php?url=chitietsanpham&id_sp=<?=$product_id?>&id_dm=<?=$category_id?>"><?=$name?></a></h6>
                         <div class="rating">
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
-                            <i class="fa fa-star"></i>
+                            <div class="rating-stars">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                            </div>
+                            <?php if (isset($_SESSION['user'])): ?>
+                            <button type="button" class="wishlist-inline-btn js-wishlist-toggle"
+                                onclick="document.getElementById('<?=$wishlist_form_id?>').requestSubmit();"
+                                title="<?=$is_in_wishlist ? 'Bỏ yêu thích' : 'Thêm yêu thích'?>">
+                                <span class="<?=$is_in_wishlist ? 'fa fa-heart' : 'icon_heart_alt'?>"
+                                    style="color: <?=$is_in_wishlist ? '#dc3545' : '#1f1f1f'?>;"></span>
+                            </button>
+                            <form id="<?=$wishlist_form_id?>" action="index.php?url=yeu-thich" method="post"
+                                class="wishlist-inline-form" style="display:none;">
+                                <input type="hidden" name="wishlist_action" value="<?=$is_in_wishlist ? 'remove' : 'add'?>">
+                                <input type="hidden" name="product_id" value="<?=$product_id?>">
+                                <input type="hidden" name="redirect_to" value="index.php">
+                                <input type="hidden" name="ajax_wishlist" value="1">
+                            </form>
+                            <?php endif; ?>
                         </div>
                         <div class="product__price"><?=number_format($sale_price) ."₫"?>
                             <span><?=number_format($price)."đ"?></span>
@@ -404,3 +432,124 @@
     </div>
 </section>
 <!-- Services Section End -->
+
+<style>
+.product__item {
+    transition: transform .22s ease, box-shadow .22s ease;
+}
+
+.product__item:hover {
+    transform: scale(1.03);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.product__item__text .rating {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: auto;
+    gap: 12px;
+}
+
+.rating-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.wishlist-inline-btn {
+    border: none;
+    background: transparent;
+    padding: 0;
+    line-height: 1;
+    font-size: 17px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+
+<script>
+(function() {
+    function showWishlistNotice(message, isError) {
+        var old = document.getElementById('wishlist-inline-toast');
+        if (old) old.remove();
+        var wrap = document.createElement('div');
+        wrap.id = 'wishlist-inline-toast';
+        wrap.style.position = 'fixed';
+        wrap.style.top = '88px';
+        wrap.style.left = '50%';
+        wrap.style.transform = 'translateX(-50%)';
+        wrap.style.zIndex = '99999';
+        wrap.style.minWidth = '320px';
+        wrap.style.maxWidth = '90vw';
+        wrap.style.padding = '12px 18px';
+        wrap.style.borderRadius = '10px';
+        wrap.style.boxShadow = '0 10px 24px rgba(0,0,0,.16)';
+        wrap.style.textAlign = 'center';
+        wrap.style.fontSize = '17px';
+        wrap.style.fontWeight = '600';
+        wrap.style.color = '#fff';
+        wrap.style.background = isError ? 'linear-gradient(90deg,#ef4444,#dc2626)' : 'linear-gradient(90deg,#0a68ff,#2563eb)';
+        wrap.textContent = message || 'Đã cập nhật danh sách yêu thích.';
+        document.body.appendChild(wrap);
+        setTimeout(function() {
+            if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+        }, 1800);
+    }
+
+    function bindWishlistAjax() {
+        var forms = document.querySelectorAll('.wishlist-inline-form');
+        forms.forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var data = new URLSearchParams(new FormData(form));
+                fetch(form.getAttribute('action') || 'index.php?url=yeu-thich', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                    body: data.toString()
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(json) {
+                    if (!json || !json.ok) {
+                        if (json && json.requires_login) {
+                            window.location.href = 'index.php?url=dang-nhap';
+                            return;
+                        }
+                        showWishlistNotice((json && json.message) || 'Không thể cập nhật yêu thích.', true);
+                        return;
+                    }
+                    var btn = form.parentElement.querySelector('.js-wishlist-toggle');
+                    if (!btn) return;
+                    var icon = btn.querySelector('span');
+                    var actionInput = form.querySelector('input[name="wishlist_action"]');
+                    if (!icon || !actionInput) return;
+
+                    if (actionInput.value === 'add') {
+                        icon.className = 'fa fa-heart';
+                        icon.style.color = '#dc3545';
+                        actionInput.value = 'remove';
+                    } else {
+                        icon.className = 'icon_heart_alt';
+                        icon.style.color = '#1f1f1f';
+                        actionInput.value = 'add';
+                    }
+                    if (typeof json.count !== 'undefined') {
+                        document.querySelectorAll('.js-wishlist-count').forEach(function(el) {
+                            el.textContent = json.count;
+                        });
+                    }
+                    showWishlistNotice(json.message || 'Đã cập nhật danh sách yêu thích.', false);
+                })
+                .catch(function() {});
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindWishlistAjax);
+    } else {
+        bindWishlistAjax();
+    }
+})();
+</script>

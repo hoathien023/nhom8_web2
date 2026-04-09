@@ -89,7 +89,7 @@
         }
 
         public function select_products_price_management($keyword = '', $category_id = 0, $status = -1) {
-            $sql = "SELECT p.product_id, p.name, p.unit, p.cost_price, p.profit_rate, p.price, p.sale_price, p.status, c.name AS category_name
+            $sql = "SELECT p.product_id, p.name, p.cost_price, p.profit_rate, p.price, p.sale_price, p.status, c.name AS category_name
                     FROM products p
                     LEFT JOIN categories c ON c.category_id = p.category_id
                     WHERE 1";

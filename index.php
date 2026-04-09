@@ -38,6 +38,101 @@ if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
     }
 }
 
+// Wishlist handlers
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wishlist_action'])) {
+    $action = trim((string)$_POST['wishlist_action']);
+    $redirect_to = isset($_POST['redirect_to']) ? trim((string)$_POST['redirect_to']) : 'index.php?url=yeu-thich';
+    $is_ajax_wishlist = isset($_POST['ajax_wishlist']) && (string)$_POST['ajax_wishlist'] === '1';
+    if ($redirect_to === '' || strpos($redirect_to, 'index.php') !== 0) {
+        $redirect_to = 'index.php?url=yeu-thich';
+    }
+
+    if (!isset($_SESSION['user']) || !isset($_SESSION['user']['id'])) {
+        if ($is_ajax_wishlist) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(array('ok' => false, 'message' => 'Vui lòng đăng nhập để dùng danh sách yêu thích.', 'requires_login' => true));
+            exit();
+        }
+        $_SESSION['wishlist_error'] = 'Vui lòng đăng nhập để dùng danh sách yêu thích.';
+        header('Location: index.php?url=dang-nhap');
+        exit();
+    }
+
+    $user_id = (int)$_SESSION['user']['id'];
+    if (!isset($_SESSION['wishlist']) || !is_array($_SESSION['wishlist'])) {
+        $_SESSION['wishlist'] = array();
+    }
+    if (!isset($_SESSION['wishlist'][$user_id]) || !is_array($_SESSION['wishlist'][$user_id])) {
+        $_SESSION['wishlist'][$user_id] = array();
+    }
+
+    if ($action === 'add') {
+        $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+        $product_info = $ProductModel->select_products_by_id($product_id);
+        if (!$product_info || (int)$product_info['status'] !== 1) {
+            $wishlist_ok = false;
+            $wishlist_message = 'Sản phẩm không tồn tại hoặc đã ẩn.';
+        } else {
+            if (!in_array($product_id, $_SESSION['wishlist'][$user_id], true)) {
+                $_SESSION['wishlist'][$user_id][] = $product_id;
+                $wishlist_ok = true;
+                $wishlist_message = 'Đã thêm sản phẩm vào danh sách yêu thích.';
+            } else {
+                $wishlist_ok = true;
+                $wishlist_message = 'Sản phẩm đã có trong danh sách yêu thích.';
+            }
+        }
+    } elseif ($action === 'remove') {
+        $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+        $_SESSION['wishlist'][$user_id] = array_values(array_filter(
+            $_SESSION['wishlist'][$user_id],
+            function ($id) use ($product_id) {
+                return (int)$id !== $product_id;
+            }
+        ));
+        $wishlist_ok = true;
+        $wishlist_message = 'Đã xóa sản phẩm khỏi danh sách yêu thích.';
+    } elseif ($action === 'bulk_remove') {
+        $product_ids = isset($_POST['product_ids']) && is_array($_POST['product_ids']) ? $_POST['product_ids'] : array();
+        $remove_ids = array_map('intval', $product_ids);
+        $_SESSION['wishlist'][$user_id] = array_values(array_filter(
+            $_SESSION['wishlist'][$user_id],
+            function ($id) use ($remove_ids) {
+                return !in_array((int)$id, $remove_ids, true);
+            }
+        ));
+        $wishlist_ok = true;
+        $wishlist_message = 'Đã xóa các sản phẩm đã chọn khỏi danh sách yêu thích.';
+    } elseif ($action === 'clear') {
+        $_SESSION['wishlist'][$user_id] = array();
+        $wishlist_ok = true;
+        $wishlist_message = 'Đã xóa toàn bộ danh sách yêu thích.';
+    } else {
+        $wishlist_ok = false;
+        $wishlist_message = 'Hành động không hợp lệ.';
+    }
+
+    if ($is_ajax_wishlist) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(array(
+            'ok' => $wishlist_ok,
+            'message' => $wishlist_message,
+            'count' => count($_SESSION['wishlist'][$user_id]),
+            'action' => $action
+        ));
+        exit();
+    }
+
+    if ($wishlist_ok) {
+        $_SESSION['wishlist_success'] = $wishlist_message;
+    } else {
+        $_SESSION['wishlist_error'] = $wishlist_message;
+    }
+
+    header('Location: ' . $redirect_to);
+    exit();
+}
+
 // AJAX cart handlers must run before rendering HTML.
 if (
     isset($_GET['url']) && $_GET['url'] === 'gio-hang' &&
@@ -137,11 +232,17 @@ if (!isset($_GET['url'])) {
         case 'lien-he':
             require_once "views/contact.php";
             break;
+        case 'faq':
+            require_once "views/faq.php";
+            break;
         case 'gio-hang':
             require_once "views/cart.php";
             break;
         case 'thanh-toan':
             require_once "views/checkout.php";
+            break;
+        case 'thu-tuc-thanh-toan':
+            require_once "views/checkout-policy.php";
             break;
         case 'thanh-toan-2':
             require_once "views/checkout-address.php";
@@ -170,6 +271,9 @@ if (!isset($_GET['url'])) {
             break;
         case 'don-hang':
             require_once "views/my-order.php";
+            break;
+        case 'yeu-thich':
+            require_once "views/wishlist.php";
             break;
         case 'chi-tiet-don-hang':
             require_once "views/my-orderdetails.php";

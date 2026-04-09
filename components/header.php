@@ -9,7 +9,14 @@
     if(isset($_SESSION['user'])) {
         $user_id = $_SESSION['user']['id'];
         $count_carts = count($CartModel->count_cart($user_id));
+        if (isset($_SESSION['wishlist'][$user_id]) && is_array($_SESSION['wishlist'][$user_id])) {
+            $count_wishlist = count($_SESSION['wishlist'][$user_id]);
+        } else {
+            $count_wishlist = 0;
+        }
 
+    } else {
+        $count_wishlist = 0;
     }
    
     ?>
@@ -20,11 +27,13 @@
         <div class="offcanvas__close">+</div>
         <ul class="offcanvas__widget">
             <li><span class="icon_search search-switch"></span></li>
-            <li><a href="#"><span class="icon_heart_alt"></span>
-                    <div class="tip">2</div>
+            <?php if(isset($_SESSION['user'])) { ?>
+            <li><a href="index.php?url=yeu-thich"><span class="icon_heart_alt"></span>
+                    <div class="tip js-wishlist-count"><?=$count_wishlist?></div>
                 </a></li>
-            <li><a href="#"><span class="icon_bag_alt"></span>
-                    <div class="tip">2</div>
+            <?php } ?>
+            <li><a href="index.php?url=gio-hang"><span class="icon_bag_alt"></span>
+                    <div class="tip"><?=$count_carts?></div>
                 </a></li>
         </ul>
         <div class="offcanvas__logo">
@@ -78,7 +87,9 @@
 
                                     <li><a href="index.php?url=gio-hang">Giỏ hàng</a></li>
                                     <li><a href="index.php?url=thanh-toan">Thanh toán</a></li>
+                                    <li><a href="index.php?url=thu-tuc-thanh-toan">Thủ tục thanh toán</a></li>
                                     <li><a href="index.php?url=don-hang">Đơn mua</a></li>
+                                    <li><a href="index.php?url=yeu-thich">Yêu thích</a></li>
                                 </ul>
                             </li>
 
@@ -113,6 +124,9 @@
                         <?php if(isset($_SESSION['user'])) {?>
                         <ul class="header__right__widget">
                             <li><span class="icon_search search-switch"></span></li>
+                            <li><a href="index.php?url=yeu-thich"><span class="icon_heart_alt"></span>
+                                    <div class="tip js-wishlist-count"><?=$count_wishlist?></div>
+                                </a></li>
 
                             <li><a id="cart-mini" href="#"><span class="icon_bag_alt"></span>
                                     <div class="tip"><?=$count_carts?></div>

@@ -7,7 +7,7 @@
             <div class="col-lg-4 col-md-6 col-sm-7">
                 <div class="footer__about">
                     <div class="footer__logo">
-                        <a href="./index.html"><img src="upload/logo/logo-trai-cay.png" alt=""></a>
+                        <a href="index.php"><img src="upload/logo/logo-trai-cay.png" alt=""></a>
                     </div>
                     <p>Chào mừng bạn đến với Khatoco nơi cung cấp quần áo chất lượng</p>
 
@@ -17,10 +17,10 @@
                 <div class="footer__widget">
                     <h6>ĐƯỜNG DẪN</h6>
                     <ul>
-                        <li><a href="#">Về chúng tôi</a></li>
-                        <li><a href="#">Blogs</a></li>
-                        <li><a href="#">Liên hệ</a></li>
-                        <li><a href="#">FAQ</a></li>
+                        <li><a href="index.php?url=lien-he">Về chúng tôi</a></li>
+                        <li><a href="index.php?url=bai-viet">Blogs</a></li>
+                        <li><a href="index.php?url=lien-he">Liên hệ</a></li>
+                        <li><a href="index.php?url=faq">FAQ</a></li>
                     </ul>
                 </div>
             </div>
@@ -28,10 +28,10 @@
                 <div class="footer__widget">
                     <h6>tÀI khoẢN</h6>
                     <ul>
-                        <li><a href="#">Tài khoản của tôi</a></li>
-                        <li><a href="#">Theo dõi đơn hàng</a></li>
-                        <li><a href="#">Thủ tục thanh toán</a></li>
-                        <li><a href="#">Danh sách yêu thích</a></li>
+                        <li><a href="index.php?url=thong-tin-tai-khoan">Tài khoản của tôi</a></li>
+                        <li><a href="index.php?url=don-hang">Theo dõi đơn hàng</a></li>
+                        <li><a href="index.php?url=thu-tuc-thanh-toan">Thủ tục thanh toán</a></li>
+                        <li><a href="index.php?url=yeu-thich">Danh sách yêu thích</a></li>
                     </ul>
                 </div>
             </div>
@@ -60,7 +60,7 @@
                     <p>Copyright &copy; <script>
                         document.write(new Date().getFullYear());
                         </script> All rights reserved | This template is made with <i class="fa fa-heart"
-                            aria-hidden="true"></i> by <a href="#" target="_blank">Lập trình viên</a></p>
+                            aria-hidden="true"></i> by <a href="#" target="_blank">Nhóm 8</a></p>
                 </div>
                 <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
             </div>
@@ -75,6 +75,12 @@
         <div class="search-close-switch">+</div>
         <form action="tim-kiem" method="get" class="search-model-form">
             <input type="search" name="query" id="search-input" placeholder="TÌM KIẾM.....">
+            <div style="margin-top: 22px; text-align: center;">
+                <a href="index.php?url=cua-hang"
+                    style="display:inline-block; padding:10px 18px; border-radius:10px; background:linear-gradient(135deg,#e7f3ff,#d8ecff); color:#0a5ec2; font-weight:700; border:1px solid #b9daff; box-shadow:0 6px 16px rgba(10,94,194,.15);">
+                    Tìm kiếm nâng cao
+                </a>
+            </div>
         </form>
     </div>
 </div>
@@ -246,6 +252,78 @@ window.__cartToastSuccess = "<?=htmlspecialchars($_SESSION['cart_toast_success']
     }
 })();
 </script>
+
+<?php if (isset($_SESSION['user']) && !empty($_SESSION['user']['username'])): ?>
+<script>
+(function() {
+    var isHomePage = <?=isset($_GET['url']) ? 'false' : 'true'?>;
+    var welcomeKey = 'home_welcome_shown';
+
+    if (!isHomePage) {
+        // Rời trang chủ thì reset để lần quay lại sẽ chào lại.
+        sessionStorage.removeItem(welcomeKey);
+        return;
+    }
+
+    // F5/reload tại trang chủ thì không hiện lại.
+    if (sessionStorage.getItem(welcomeKey) === '1') {
+        return;
+    }
+
+    function showWelcomePopup() {
+        var old = document.getElementById('welcome-user-popup');
+        if (old) old.remove();
+
+        var wrap = document.createElement('div');
+        wrap.id = 'welcome-user-popup';
+        wrap.innerHTML = 'Xin chào <strong><?=htmlspecialchars($_SESSION['user']['username'], ENT_QUOTES)?></strong>, chúc bạn một ngày tốt lành!';
+        wrap.style.position = 'fixed';
+        wrap.style.top = '86px';
+        wrap.style.left = '50%';
+        wrap.style.transform = 'translateX(-50%)';
+        wrap.style.zIndex = '99998';
+        wrap.style.minWidth = '360px';
+        wrap.style.maxWidth = '92vw';
+        wrap.style.padding = '14px 20px';
+        wrap.style.borderRadius = '14px';
+        wrap.style.background = 'linear-gradient(135deg, #eefbff 0%, #f3f9ff 55%, #fff5fb 100%)';
+        wrap.style.color = '#1f3b57';
+        wrap.style.fontSize = '18px';
+        wrap.style.lineHeight = '1.4';
+        wrap.style.textAlign = 'center';
+        wrap.style.border = '1px solid #d9ecff';
+        wrap.style.boxShadow = '0 14px 30px rgba(18, 82, 145, 0.18)';
+        wrap.style.opacity = '0';
+        wrap.style.transition = 'opacity .45s ease, transform .45s ease';
+        wrap.style.pointerEvents = 'none';
+
+        document.body.appendChild(wrap);
+
+        requestAnimationFrame(function() {
+            wrap.style.opacity = '1';
+            wrap.style.transform = 'translateX(-50%) translateY(0)';
+        });
+
+        setTimeout(function() {
+            wrap.style.opacity = '0';
+            wrap.style.transform = 'translateX(-50%) translateY(-6px)';
+        }, 4000);
+
+        setTimeout(function() {
+            if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+        }, 4500);
+    }
+
+    sessionStorage.setItem(welcomeKey, '1');
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', showWelcomePopup);
+    } else {
+        showWelcomePopup();
+    }
+})();
+</script>
+<?php endif; ?>
 
 <!-- dialogflow -->
 <!-- <script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>
