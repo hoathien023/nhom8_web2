@@ -2,6 +2,14 @@
 
 
     <div class="container-xxl position-relative bg-white d-flex p-0">
+        <?php
+            $new_orders = [];
+            $new_order_count = 0;
+            if (isset($OrderModel)) {
+                $new_orders = $OrderModel->select_orders_unconfirmed();
+                $new_order_count = count($new_orders);
+            }
+        ?>
         <!-- Spinner Start -->
         <!-- <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
             <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
@@ -124,39 +132,28 @@
                 </form>
                 <div class="navbar-nav align-items-center ms-auto">
                     <div class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fa fa-envelope me-lg-2"></i>
-                            <span class="d-none d-lg-inline-flex">Tin nhắn</span>
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-end bg-white border-1 rounded-0 rounded-bottom m-0">
-                            <a href="#" class="dropdown-item">
-                                <div class="d-flex align-items-center">
-                                    <img class="rounded-circle" src="public_admin/img/user-default.png" alt=""
-                                        style="width: 40px; height: 40px;">
-                                    <div class="ms-2">
-                                        <h6 class="fw-normal mb-0">hello everyone</h6>
-                                        <small>15 phút trước</small>
-                                    </div>
-                                </div>
-                            </a>
-                            <hr class="dropdown-divider">
-
-                            <a href="#" class="dropdown-item text-center">Xem tất cả</a>
-                        </div>
-                    </div>
-                    <div class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                        <a href="#" class="nav-link dropdown-toggle position-relative" data-bs-toggle="dropdown" style="overflow: visible;">
                             <i class="fa fa-bell me-lg-2"></i>
+                            <?php if ($new_order_count > 0): ?>
+                                <span class="position-absolute badge rounded-pill bg-danger" style="top: 6px; right: -8px; transform: none; z-index: 2;">
+                                    <?=$new_order_count?>
+                                </span>
+                            <?php endif; ?>
                             <span class="d-none d-lg-inline-flex">Thông báo</span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end bg-white border-1 rounded-0 rounded-bottom m-0">
-                            <a href="#" class="dropdown-item">
-                                <h6 class="fw-normal mb-0">1 Đơn hàng mới</h6>
-                                <small>10:20 20-11-2023</small>
-                            </a>
-                            <hr class="dropdown-divider">
-
-                            <a href="#" class="dropdown-item text-center">Xem tất cả</a>
+                            <?php if ($new_order_count === 0): ?>
+                                <div class="dropdown-item text-muted">Không có đơn hàng mới</div>
+                            <?php else: ?>
+                                <?php foreach (array_slice($new_orders, 0, 5) as $notify_order): ?>
+                                    <a href="index.php?quanli=cap-nhat-don-hang&id=<?=$notify_order['order_id']?>" class="dropdown-item">
+                                        <h6 class="fw-normal mb-0">Đơn mới #<?=$notify_order['order_id']?> - <?=htmlspecialchars($notify_order['full_name'])?></h6>
+                                        <small><?=$BaseModel->date_format($notify_order['order_date'], '')?></small>
+                                    </a>
+                                    <hr class="dropdown-divider">
+                                <?php endforeach; ?>
+                                <a href="index.php?quanli=danh-sach-don-cho" class="dropdown-item text-center">Xem tất cả đơn mới</a>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="nav-item dropdown">
@@ -165,8 +162,13 @@
                                 style="width: 40px; height: 40px;">
                             <span class="d-none d-lg-inline-flex">ADMIN</span>
                         </a>
-                        <div class="dropdown-menu dropdown-menu-end bg-white border-1 rounded-0 rounded-bottom m-0">
-                            <a href="#" class="dropdown-item">Hồ sơ</a>
+                        <div class="dropdown-menu dropdown-menu-end bg-white border-1 rounded-3 shadow-sm m-0 p-2" style="min-width: 260px;">
+                            <div class="px-2 py-2 border-bottom mb-2">
+                                <div class="fw-semibold text-dark"><?=isset($_SESSION['user_admin']['full_name']) ? htmlspecialchars($_SESSION['user_admin']['full_name']) : 'ADMIN'?></div>
+                                <div class="text-muted small">Quản trị hệ thống</div>
+                            </div>
+                            <a href="index.php?quanli=danh-sach-khach-hang" class="dropdown-item rounded">Quản lý tài khoản</a>
+                            <a href="index.php" class="dropdown-item rounded">Bảng điều khiển</a>
                             <a href="index.php?quanli=dang-xuat" class="dropdown-item">Đăng xuất</a>
                         </div>
                     </div>

@@ -47,6 +47,7 @@ if (document.getElementById('categories-list')) {
     const dataTableSearch = new DataTable("#categories-list", {
         responsive: true,
         searchable: true,
+        ordering: false,
         fixedHeight: false,
         lengthMenu: [5, 10, 15, 20, 25],
         pageLength: 5
@@ -57,9 +58,21 @@ if (document.getElementById('orders-list')) {
     const dataTableSearch = new DataTable("#orders-list", {
         responsive: true,
         searchable: true,
+        ordering: false,
         fixedHeight: false,
-        lengthMenu: [5, 10, 15, 20, 25],
-        pageLength: 5
+        lengthMenu: [10, 15, 20, 25, 50],
+        pageLength: 10
+    });
+}
+
+if (document.getElementById('orders-unconfirmed-list')) {
+    const dataTableSearch = new DataTable("#orders-unconfirmed-list", {
+        responsive: true,
+        searchable: true,
+        ordering: false,
+        fixedHeight: false,
+        lengthMenu: [10, 15, 20, 25, 50],
+        pageLength: 10
     });
 }
 
@@ -67,6 +80,7 @@ if (document.getElementById('comments-list')) {
     const dataTableSearch = new DataTable("#comments-list", {
         responsive: true,
         searchable: true,
+        ordering: false,
         fixedHeight: false,
         lengthMenu: [5, 10, 15, 20, 25],
         pageLength: 5
@@ -77,6 +91,7 @@ if (document.getElementById('post-list')) {
     const dataTableSearch = new DataTable("#post-list", {
         responsive: true,
         searchable: true,
+        ordering: false,
         fixedHeight: false,
         lengthMenu: [5, 10, 15, 20, 25],
         pageLength: 5
@@ -87,6 +102,7 @@ if (document.getElementById('users-list')) {
     const dataTableSearch = new DataTable("#users-list", {
         responsive: true,
         searchable: true,
+        ordering: false,
         fixedHeight: false,
         lengthMenu: [5, 10, 15, 20, 25],
         pageLength: 5
@@ -97,6 +113,7 @@ if (document.getElementById('khohang-list')) {
     const dataTableSearch = new DataTable("#khohang-list", {
         responsive: true,
         searchable: true,
+        ordering: false,
         fixedHeight: false,
         lengthMenu: [5, 10, 15, 20, 25],
         pageLength: 5
@@ -133,6 +150,79 @@ function confirmDeletionTemp() {
     return confirm("Bạn có chắc muốn đưa sản phẩm vào thùng rác?");
 
 }
+</script>
+
+<style>
+/* Ẩn icon sort của DataTable sau khi tắt ordering */
+table.dataTable thead .dt-orderable-asc,
+table.dataTable thead .dt-orderable-desc {
+    background-image: none !important;
+}
+</style>
+
+<script>
+// Hiển thị định dạng số có dấu chấm ngăn cách (ví dụ: 1.000.000)
+// để người dùng dễ đọc khi nhập các ô kiểu number trong trang quản trị.
+(function () {
+    function formatNumberPreview(rawValue) {
+        if (rawValue === '' || rawValue === null || typeof rawValue === 'undefined') {
+            return '';
+        }
+        const num = Number(rawValue);
+        if (!Number.isFinite(num)) {
+            return '';
+        }
+        return new Intl.NumberFormat('vi-VN', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 3
+        }).format(num);
+    }
+
+    function ensurePreviewElement(input) {
+        let preview = input.parentElement.querySelector('.number-preview');
+        if (!preview) {
+            preview = document.createElement('small');
+            preview.className = 'number-preview text-muted d-block mt-1';
+            input.parentElement.appendChild(preview);
+        }
+        return preview;
+    }
+
+    function updatePreview(input) {
+        const preview = ensurePreviewElement(input);
+        const formatted = formatNumberPreview(input.value);
+        preview.textContent = formatted !== '' ? ('Dạng hiển thị: ' + formatted) : '';
+    }
+
+    function isMoneyInput(input) {
+        const key = (
+            (input.name || '') + ' ' +
+            (input.id || '') + ' ' +
+            (input.getAttribute('placeholder') || '')
+        ).toLowerCase();
+
+        return (
+            key.includes('price') ||
+            key.includes('cost_price') ||
+            key.includes('sale_price') ||
+            key.includes('import_price') ||
+            key.includes('giá') ||
+            key.includes('gia')
+        );
+    }
+
+    const numberInputs = Array.from(document.querySelectorAll('input[type="number"]'))
+        .filter(isMoneyInput);
+    numberInputs.forEach(function (input) {
+        updatePreview(input);
+        input.addEventListener('input', function () {
+            updatePreview(input);
+        });
+        input.addEventListener('change', function () {
+            updatePreview(input);
+        });
+    });
+})();
 </script>
 
 <!-- Template Javascript -->

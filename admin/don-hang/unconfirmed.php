@@ -11,7 +11,7 @@
 
 
         <div class="table-responsive">
-            <table class="table text-start align-middle table-bordered table-hover mb-0">
+            <table class="table text-start align-middle table-bordered table-hover mb-0" id="orders-unconfirmed-list">
                 <thead>
                     <tr class="text-dark">
 

@@ -41,7 +41,8 @@
     $error ='';
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["login"])) {
         $username = trim($_POST["username"]);
-        $password = trim($_POST["password"]);
+        // Không trim mật khẩu để tránh đăng nhập sai chuẩn bảo mật.
+        $password = isset($_POST["password"]) ? (string)$_POST["password"] : '';
 
         if (!empty($username) && !empty($password)) {
             $user = $CustomerModel->get_user_admin($username);

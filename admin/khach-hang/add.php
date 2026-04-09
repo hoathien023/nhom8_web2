@@ -7,7 +7,8 @@
         'password' => '',
         'password_confirm' => '',
         'phone' => '',
-        'address' => '',     
+        'address' => '',
+        'role' => '',
     );
 
     $temp = array(
@@ -36,6 +37,10 @@
         $address = trim($_POST["address"]);
         $role = $_POST["role"];
         $image = "user-default.png";
+
+        if (!in_array((int)$role, [0, 1], true)) {
+            $error['role'] = 'Vai trò không hợp lệ.';
+        }
 
         //MÃ hóa password
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
@@ -160,6 +165,7 @@
                         <option selected value="0">Khách hàng</option>
                         <option value="1">Nhân viên</option>
                     </select>
+                    <span class="text-danger err"><?=$error['role']?></span>
 
                 </div>
 

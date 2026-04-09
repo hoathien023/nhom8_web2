@@ -16,7 +16,8 @@
 
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["signin"])) {
         $username = trim($_POST["username_login"]);
-        $password = trim($_POST["password_login"]);
+        // Không trim mật khẩu để tránh đăng nhập sai chuẩn bảo mật.
+        $password = isset($_POST["password_login"]) ? (string)$_POST["password_login"] : '';
         
         if (!empty($username) && !empty($password)) {
             $user = $CustomerModel->get_user_by_username($username);

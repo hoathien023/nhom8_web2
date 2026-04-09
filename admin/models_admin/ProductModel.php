@@ -14,7 +14,7 @@
         }
 
         public function format_cost_price($cost_price) {
-            return number_format((float)$cost_price, 3, ',', '.');
+            return number_format((int)round((float)$cost_price), 0, ',', '.');
         }
 
         public function insert_product($category_id, $name, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status) {

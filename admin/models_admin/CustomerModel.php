@@ -14,6 +14,11 @@
         }
 
         public function user_insert($username, $password, $full_name, $image, $email, $phone, $address, $role) {
+            $role = (int)$role;
+            if (!in_array($role, [0, 1], true)) {
+                throw new Exception("Vai trò tài khoản không hợp lệ.");
+            }
+
             $sql = "INSERT INTO users(username, password, full_name, image, email, phone, address, role) VALUES(?,?,?,?,?,?,?,?)";
 
             pdo_execute($sql, $username, $password, $full_name, $image, $email, $phone, $address, $role);
