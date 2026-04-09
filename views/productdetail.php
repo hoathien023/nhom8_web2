@@ -139,7 +139,11 @@
                         </div>
                     <?php endif; ?>
 
-                    <?php if($quantity == 0){?>
+                    <?php
+                        $available_quantity = max(0, (int)$quantity);
+                        $is_low_stock = $available_quantity > 0 && $available_quantity <= 5;
+                    ?>
+                    <?php if($available_quantity <= 0){?>
 
                     <div class="quantity">
                         <button style="border: none;" type="submit" class="btn btn-warning">
@@ -157,13 +161,17 @@
                                 <span class="text-dark">Số lượng</span>
                                 <div class="input-next-cart d-flex mx-4">
                                     <input type="button" value="-" class="button-minus" data-field="quantity">
-                                    <input type="number" step="1" min="1" max="<?=$quantity?>" value="1" name="product_quantity"
-                                        class="quantity-field-cart">
+                                    <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off"
+                                        step="1" min="1" max="<?=$available_quantity?>" value="1" name="product_quantity"
+                                        class="quantity-field-cart js-product-qty-input" data-stock="<?=$available_quantity?>">
                                     <input type="button" value="+" class="button-plus" data-field="quantity">
                                 </div>
-                                <span class="text-dark"><?=$quantity?> sản phẩm có sẵn</span>
+                                <span class="<?=$is_low_stock ? 'text-danger font-weight-bold' : 'text-dark'?>">
+                                    <?=$is_low_stock ? 'Chỉ còn '.$available_quantity.' sản phẩm' : $available_quantity.' sản phẩm có sẵn'?>
+                                </span>
 
                             </div>
+                            <div id="product-qty-error" class="text-danger mt-2" style="display:none; font-size:14px;"></div>
 
                             <input value="<?=$product_id?>" type="hidden" name="product_id">
                             <input value="<?=$_SESSION['user']['id']?>" type="hidden" name="user_id">
@@ -203,11 +211,13 @@
                             <span class="text-dark">Số lượng</span>
                             <div class="input-next-cart d-flex mx-4">
                                 <input type="button" value="-" class="button-minus" data-field="quantity">
-                                <input type="number" readonly step="1" max="50" value="1" name="product_quantity"
-                                    class="quantity-field-cart">
+                                <input type="text" readonly inputmode="numeric" pattern="[0-9]*" value="1"
+                                    name="product_quantity" class="quantity-field-cart">
                                 <input type="button" value="+" class="button-plus" data-field="quantity">
                             </div>
-                            <span class="text-dark"><?=$quantity?> sản phẩm có sẵn</span>
+                            <span class="<?=$is_low_stock ? 'text-danger font-weight-bold' : 'text-dark'?>">
+                                <?=$is_low_stock ? 'Chỉ còn '.$available_quantity.' sản phẩm' : $available_quantity.' sản phẩm có sẵn'?>
+                            </span>
 
                         </div>
                         <div class="quantity">
@@ -350,6 +360,81 @@
 
 <script>
 (function() {
+    function bindProductQtyValidation() {
+        var input = document.querySelector('.js-product-qty-input');
+        if (!input) return;
+        var form = input.closest('form');
+        var errorEl = document.getElementById('product-qty-error');
+        var stock = Number(input.getAttribute('data-stock') || input.getAttribute('max') || 0);
+
+        function showQtyError(message) {
+            if (!errorEl) return;
+            errorEl.textContent = message || '';
+            errorEl.style.display = message ? 'block' : 'none';
+        }
+
+        function sanitizeValue() {
+            var raw = String(input.value || '');
+            var digitsOnly = raw.replace(/[^\d]/g, '');
+            if (raw !== digitsOnly) {
+                input.value = digitsOnly;
+            }
+        }
+
+        function normalizeValue(allowEmpty) {
+            sanitizeValue();
+            var current = String(input.value || '');
+            if (current === '') {
+                if (!allowEmpty) {
+                    input.value = '1';
+                }
+                return;
+            }
+            var value = Number(current);
+            if (!Number.isFinite(value) || value < 1) {
+                input.value = '1';
+                showQtyError('Số lượng phải lớn hơn 0.');
+                return;
+            }
+            if (value > stock) {
+                input.value = String(stock);
+                showQtyError('Chỉ còn ' + stock + ' sản phẩm. Đã tự điều chỉnh về ' + stock + '.');
+                return;
+            }
+            showQtyError('');
+        }
+
+        input.addEventListener('input', function() {
+            sanitizeValue();
+            if (String(input.value || '') === '') {
+                showQtyError('Số lượng chỉ được nhập số.');
+                return;
+            }
+            normalizeValue(true);
+        });
+
+        input.addEventListener('blur', function() {
+            normalizeValue(false);
+        });
+
+        input.addEventListener('keydown', function(e) {
+            if (['e', 'E', '+', '-', '.', ','].indexOf(e.key) >= 0) {
+                e.preventDefault();
+            }
+        });
+
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                normalizeValue(false);
+                var value = Number(input.value || 0);
+                if (!Number.isFinite(value) || value < 1 || value > stock) {
+                    e.preventDefault();
+                    showQtyError('Số lượng không hợp lệ. Vui lòng nhập từ 1 đến ' + stock + '.');
+                }
+            });
+        }
+    }
+
     function showWishlistNotice(message, isError) {
         var old = document.getElementById('wishlist-inline-toast');
         if (old) old.remove();
@@ -432,8 +517,10 @@
     }
 
     if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindProductQtyValidation);
         document.addEventListener('DOMContentLoaded', bindProductWishlistAjax);
     } else {
+        bindProductQtyValidation();
         bindProductWishlistAjax();
     }
 })();

@@ -17,6 +17,13 @@
     $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
     $from_price = $parse_price_input($_GET['from_price'] ?? '');
     $to_price = $parse_price_input($_GET['to_price'] ?? '');
+    $product_ids_raw = isset($_GET['product_ids']) ? trim((string)$_GET['product_ids']) : '';
+    $product_ids = array();
+    if ($product_ids_raw !== '') {
+        $product_ids = array_values(array_filter(array_map('intval', explode(',', $product_ids_raw)), function ($id) {
+            return $id > 0;
+        }));
+    }
     $wishlist_ids = array();
     if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
         $wishlist_user_id = (int)$_SESSION['user']['id'];
@@ -41,8 +48,18 @@
         $to_price = $from_price;
     }
 
-    $list_products = $ProductModel->search_products_advanced($query, $category_id, $from_price, $to_price, $page, $perPage);
-    $total_info = $ProductModel->count_products_advanced($query, $category_id, $from_price, $to_price);
+    if (!empty($product_ids)) {
+        // Chế độ mua lại: chỉ hiển thị đúng các sản phẩm trong đơn đã chọn.
+        $list_products = $ProductModel->select_products_by_ids_paginated($product_ids, $page, $perPage);
+        $total_info = $ProductModel->count_products_by_ids($product_ids);
+        $query = '';
+        $category_id = 0;
+        $from_price = null;
+        $to_price = null;
+    } else {
+        $list_products = $ProductModel->search_products_advanced($query, $category_id, $from_price, $to_price, $page, $perPage);
+        $total_info = $ProductModel->count_products_advanced($query, $category_id, $from_price, $to_price);
+    }
     $totalProducts = (int)($total_info['total'] ?? 0);
     $numberOfPages = max(1, (int)ceil($totalProducts / $perPage));
     if ($page > $numberOfPages) {
@@ -61,16 +78,21 @@
         'category_id' => $category_id > 0 ? $category_id : '',
         'from_price' => $from_price !== null ? $from_price : '',
         'to_price' => $to_price !== null ? $to_price : '',
+        'product_ids' => $product_ids_raw,
     );
 
     $selected_category_name = 'Tất cả';
-    foreach ($list_catgories as $cate_item) {
-        if ($is_hidden_category($cate_item['name'])) {
-            continue;
-        }
-        if ((int)$cate_item['category_id'] === (int)$category_id) {
-            $selected_category_name = $cate_item['name'];
-            break;
+    if (!empty($product_ids)) {
+        $selected_category_name = 'Mua lại sản phẩm';
+    } else {
+        foreach ($list_catgories as $cate_item) {
+            if ($is_hidden_category($cate_item['name'])) {
+                continue;
+            }
+            if ((int)$cate_item['category_id'] === (int)$category_id) {
+                $selected_category_name = $cate_item['name'];
+                break;
+            }
         }
     }
 ?>

@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wishlist_action'])) {
 if (
     isset($_GET['url']) && $_GET['url'] === 'gio-hang' &&
     $_SERVER['REQUEST_METHOD'] === 'POST' &&
-    (isset($_POST['ajax_update_qty']) || isset($_POST['ajax_add_to_cart']))
+    (isset($_POST['ajax_update_qty']) || isset($_POST['ajax_add_to_cart']) || isset($_POST['ajax_remove_cart_item']))
 ) {
     header('Content-Type: application/json; charset=utf-8');
 
@@ -147,6 +147,17 @@ if (
     }
 
     $user_id = (int)$_SESSION['user']['id'];
+    $get_cart_summary = function($uid) use ($CartModel) {
+        $items = $CartModel->select_all_carts($uid);
+        $total = 0;
+        foreach ($items as $it) {
+            $total += (int)$it['product_price'] * (int)$it['product_quantity'];
+        }
+        return array(
+            'cart_count' => count($items),
+            'cart_total' => $total
+        );
+    };
 
     if (isset($_POST['ajax_update_qty'])) {
         $product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
@@ -162,7 +173,13 @@ if (
             $quantity = (int)$product_info['quantity'];
         }
         $CartModel->update_cart($quantity, $product_id, $user_id);
-        echo json_encode(array('ok' => true, 'quantity' => $quantity));
+        $summary = $get_cart_summary($user_id);
+        echo json_encode(array(
+            'ok' => true,
+            'quantity' => $quantity,
+            'cart_count' => $summary['cart_count'],
+            'cart_total' => $summary['cart_total']
+        ));
         exit();
     }
 
@@ -200,7 +217,30 @@ if (
             $CartModel->insert_cart($product_id, $user_id, $product_name, $product_price, $product_quantity, $product_image);
         }
 
-        echo json_encode(array('ok' => true, 'message' => 'Bạn đã thêm sản phẩm vào giỏ hàng thành công :3'));
+        $summary = $get_cart_summary($user_id);
+        echo json_encode(array(
+            'ok' => true,
+            'message' => 'Bạn đã thêm sản phẩm vào giỏ hàng thành công :3',
+            'cart_count' => $summary['cart_count'],
+            'cart_total' => $summary['cart_total']
+        ));
+        exit();
+    }
+
+    if (isset($_POST['ajax_remove_cart_item'])) {
+        $cart_id = isset($_POST['cart_id']) ? (int)$_POST['cart_id'] : 0;
+        if ($cart_id <= 0) {
+            echo json_encode(array('ok' => false, 'message' => 'Mục giỏ hàng không hợp lệ.'));
+            exit();
+        }
+        $CartModel->delete_cart_by_id_and_user($cart_id, $user_id);
+        $summary = $get_cart_summary($user_id);
+        echo json_encode(array(
+            'ok' => true,
+            'message' => 'Đã xóa sản phẩm khỏi giỏ hàng.',
+            'cart_count' => $summary['cart_count'],
+            'cart_total' => $summary['cart_total']
+        ));
         exit();
     }
 }

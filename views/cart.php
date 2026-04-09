@@ -278,7 +278,7 @@
                                     </td>
                                     <td class="cart__total row-total"><?=number_format($totalPrice)?>đ</td>
                                     <td class="cart__close">
-                                        <a href="index.php?url=gio-hang&xoa=<?=$cart_id?>">
+                                        <a class="js-cart-delete-link" href="index.php?url=gio-hang&xoa=<?=$cart_id?>">
                                             <span class="icon_close"></span>
                                         </a>
                                     </td>
@@ -456,6 +456,20 @@
 
 <script>
 (function() {
+    var scrollKey = 'cart_scroll_after_action';
+    var savedY = sessionStorage.getItem(scrollKey);
+    if (savedY !== null) {
+        sessionStorage.removeItem(scrollKey);
+        var y = parseInt(savedY, 10);
+        if (!isNaN(y) && y > 0) {
+            window.scrollTo(0, y);
+        }
+    }
+
+    function saveCartScrollPosition() {
+        sessionStorage.setItem(scrollKey, String(window.pageYOffset || document.documentElement.scrollTop || 0));
+    }
+
     var checkoutBtn = document.getElementById('checkout-selected-btn');
     var warningEl = document.getElementById('checkout-warning-top');
     var selectedCountEl = document.getElementById('selected-count');
@@ -464,6 +478,7 @@
     var deleteSelectedBtn = document.getElementById('delete-selected-btn');
     var checkboxes = Array.prototype.slice.call(document.querySelectorAll('.checkout-product-checkbox'));
     var cartRows = Array.prototype.slice.call(document.querySelectorAll('tr.cart-row'));
+    var deleteLinks = Array.prototype.slice.call(document.querySelectorAll('.js-cart-delete-link'));
     if (!checkoutBtn) return;
 
     function formatMoney(num) {
@@ -581,6 +596,7 @@
         deleteSelectedBtn.addEventListener('click', function() {
             var checked = document.querySelectorAll('.checkout-product-checkbox:checked');
             if (!checked.length) return;
+            saveCartScrollPosition();
             var form = document.createElement('form');
             form.method = 'post';
             form.action = 'index.php?url=gio-hang';
@@ -603,6 +619,12 @@
             form.submit();
         });
     }
+
+    deleteLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+            saveCartScrollPosition();
+        });
+    });
 
     checkoutBtn.addEventListener('click', function() {
         var checked = document.querySelectorAll('.checkout-product-checkbox:checked');

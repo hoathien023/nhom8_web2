@@ -33,7 +33,7 @@
                 </a></li>
             <?php } ?>
             <li><a href="index.php?url=gio-hang"><span class="icon_bag_alt"></span>
-                    <div class="tip"><?=$count_carts?></div>
+                    <div class="tip js-cart-count"><?=$count_carts?></div>
                 </a></li>
         </ul>
         <div class="offcanvas__logo">
@@ -129,7 +129,7 @@
                                 </a></li>
 
                             <li><a id="cart-mini" href="#"><span class="icon_bag_alt"></span>
-                                    <div class="tip"><?=$count_carts?></div>
+                                    <div class="tip js-cart-count"><?=$count_carts?></div>
                                 </a></li>
                         </ul>
                         <?php }else {?>
@@ -139,7 +139,7 @@
 
                             <li><a onclick="alert('Vui lòng đăng nhập để sử dụng chức năng')" id="cart-mini"
                                     href="dang-nhap"><span class="icon_bag_alt"></span>
-                                    <div class="tip">0</div>
+                                    <div class="tip js-cart-count">0</div>
                                 </a></li>
                         </ul>
                         <?php }?>

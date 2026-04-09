@@ -2,8 +2,10 @@
 /public
 /admin/public_admin
 .env
+.env.local
 .env.backup
 .env.production
+config/config.local.php
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml

@@ -99,6 +99,40 @@
             return pdo_query_one($sql, ...$params);
         }
 
+        public function select_products_by_ids_paginated($product_ids, $page = 1, $perPage = 9) {
+            $ids = array_values(array_filter(array_map('intval', (array)$product_ids), function ($id) {
+                return $id > 0;
+            }));
+            if (empty($ids)) {
+                return array();
+            }
+
+            $page = max(1, (int)$page);
+            $perPage = max(1, (int)$perPage);
+            $start = ($page - 1) * $perPage;
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+            $sql = "SELECT * FROM products
+                    WHERE status = 1 AND product_id IN ($placeholders)
+                    ORDER BY product_id DESC
+                    LIMIT $start, $perPage";
+
+            return pdo_query($sql, ...$ids);
+        }
+
+        public function count_products_by_ids($product_ids) {
+            $ids = array_values(array_filter(array_map('intval', (array)$product_ids), function ($id) {
+                return $id > 0;
+            }));
+            if (empty($ids)) {
+                return array('total' => 0);
+            }
+
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $sql = "SELECT COUNT(*) AS total FROM products WHERE status = 1 AND product_id IN ($placeholders)";
+            return pdo_query_one($sql, ...$ids);
+        }
+
         public function get_min_max_prices() {
             $sql = "SELECT MIN(sale_price) AS min_price, MAX(sale_price) AS max_price FROM products WHERE status = 1";
         

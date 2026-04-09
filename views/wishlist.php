@@ -103,9 +103,15 @@ if (!empty($_SESSION['wishlist_success'])) {
                                         </label>
                                     </td>
                                     <td class="cart__product__item">
-                                        <img src="upload/<?=$item['image']?>" alt="" style="width:90px; height:auto;">
+                                        <a href="index.php?url=chitietsanpham&id_sp=<?=$item['product_id']?>&id_dm=<?=$item['category_id']?>">
+                                            <img src="upload/<?=$item['image']?>" alt="<?=$item['name']?>" style="width:90px; height:auto;">
+                                        </a>
                                         <div class="cart__product__item__title">
-                                            <h6><?=$item['name']?></h6>
+                                            <h6>
+                                                <a href="index.php?url=chitietsanpham&id_sp=<?=$item['product_id']?>&id_dm=<?=$item['category_id']?>" class="text-dark">
+                                                    <?=$item['name']?>
+                                                </a>
+                                            </h6>
                                         </div>
                                     </td>
                                     <td class="cart__price"><?=$ProductModel->formatted_price($item['sale_price'])?></td>

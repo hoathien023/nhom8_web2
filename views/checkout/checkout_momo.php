@@ -78,6 +78,8 @@ try {
 <?php 
     if(isset($_SESSION['user'])) { 
         $user_id = $_SESSION['user']['id'];
+        $secondary_address = $AddressModel->select_address_user($user_id);
+        $has_secondary_address = is_array($secondary_address) && !empty(trim((string)($secondary_address['address'] ?? '')));
         $list_carts = $CartModel->select_all_carts($user_id);
         $count_cart = count($CartModel->count_cart($user_id));
     ?>
@@ -110,9 +112,9 @@ try {
                     echo $BaseModel->alert_error_success(implode('<br>', array_filter($error)), '');
                 }
             ?>
-            <div class="row">
-                <div class="col-lg-8">
-                    <h5>CHI TIẾT THANH TOÁN</h5>
+            <div class="row checkout-layout">
+                <div class="col-lg-8 checkout-main">
+                    <h5 class="checkout-title">CHI TIẾT THANH TOÁN QUA MOMO</h5>
                     <div class="row">
                         <div class="col-lg-6 col-md-6 col-sm-6">
                             <div class="checkout__form__input">
@@ -151,26 +153,19 @@ try {
                         </div>
 
                         <div class="col-lg-12">
-                            <div class="d-flex">
+                            <p class="checkout-helper-text">Chọn địa chỉ nhận hàng trước khi chuyển sang ví MoMo để thanh toán.</p>
+                            <div class="d-flex flex-wrap address-switch-group">
                                 <a href="thanh-toan-momo-address" class="btn btn-outline-dark block mr-1">Địa chỉ 1</a>
-                                
-                                <?php
-                                    // Kiểm tra tồn tại địa chỉ 2 không
-                                    $address = $AddressModel->select_address_user($_SESSION['user']['id']);
-
-                                    if(is_array($address)) {
-                                ?>
-                                <a href="thanh-toan-momo-address-2" class="btn btn-outline-dark ">Địa chỉ 2</a>
-                                <?php
-                                    }
-                                ?>
+                                <?php if ($has_secondary_address): ?>
+                                    <a href="thanh-toan-momo-address-2" class="btn btn-outline-dark">Địa chỉ 2</a>
+                                <?php endif; ?>
                             </div>
                         </div>
 
 
                     </div>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-4 checkout-sidebar">
                     <div class="checkout__order">
                         <h5>ĐƠN HÀNG</h5>
                         <div class="checkout__order__product">
@@ -215,8 +210,16 @@ try {
                         </div>
 
                         <?php if($count_cart > 0) {?>
-                        <div class="checkout__order__widget text-center mb-2" style="color: #111;">
-                            Hình thức: Thanh toán MOMO
+                        <div class="checkout__order__widget momo-payment-box mb-2">
+                            <div class="momo-header">
+                                <span class="momo-icon"><i class="fa fa-credit-card"></i></span>
+                                <strong>Thanh toán qua Ví MoMo</strong>
+                            </div>
+                            <ul class="momo-checklist">
+                                <li>Kiểm tra chính xác tổng tiền và địa chỉ nhận hàng.</li>
+                                <li>Sau khi bấm thanh toán, bạn sẽ được chuyển tới cổng MoMo bảo mật.</li>
+                                <li>Không chia sẻ OTP, mã PIN, mật khẩu cho bất kỳ ai.</li>
+                            </ul>
                         </div>
                         <button type="button" class="site-btn btn-momo" data-toggle="modal" data-target="#thanhtoan">
                             THANH TOÁN MOMO
@@ -273,33 +276,123 @@ try {
 
 
 <style>
-.cart__btn a:hover {
-    background-color: #0A68FF;
-    color: #fff;
-    transition: 0.2s;
+.checkout.spad {
+    padding-top: 28px;
+}
+
+.checkout-layout {
+    align-items: flex-start;
+}
+
+.checkout-main {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 16px;
+    padding: 18px 18px 10px;
+    box-shadow: 0 10px 26px rgba(21, 40, 74, 0.06);
+}
+
+.checkout-sidebar .checkout__order {
+    border: 1px solid #e8edf5;
+    border-radius: 16px;
+    box-shadow: 0 10px 26px rgba(21, 40, 74, 0.06);
+    background: #fff;
+    padding: 20px 18px 18px;
+}
+
+.checkout-title {
+    font-size: 25px;
+    margin-bottom: 18px;
+}
+
+.checkout__form .checkout__form__input p {
+    color: #24364d;
+    margin-bottom: 8px;
+    font-weight: 600;
 }
 
 .checkout__form .checkout__form__input input {
-    color: #000000;
+    color: #122033;
+    border: 1px solid #dbe4ef;
+    border-radius: 10px;
+    height: 48px;
+    background: #fbfdff;
 }
 
 .checkout__form .checkout__form__input input:focus {
-    border: 1px solid #999999;
+    border: 1px solid #0A68FF;
+    box-shadow: 0 0 0 3px rgba(10, 104, 255, 0.12);
+}
+
+.checkout-helper-text {
+    color: #4f6279;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.address-switch-group .btn {
+    border-radius: 9px;
 }
 
 .error {
     display: inline-block;
-    height: 20px;
-    font-size: 15px;
+    min-height: 20px;
+    font-size: 14px;
+}
+
+.momo-payment-box {
+    border: 1px solid #f2d7e8;
+    border-radius: 12px;
+    background: linear-gradient(180deg,#fff,#fff7fc);
+    padding: 12px;
+}
+
+.momo-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6d1d52;
+    margin-bottom: 8px;
+}
+
+.momo-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #ffe5f2;
+    color: #d82d8b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.momo-checklist {
+    margin: 0;
+    padding-left: 18px;
+    color: #5b4a56;
+    font-size: 13px;
+}
+
+.momo-checklist li {
+    margin-bottom: 4px;
 }
 
 .btn-momo {
-    background-color: #D82D8B;
+    background: linear-gradient(135deg, #d82d8b, #b71f75);
     color: #fff;
+    border-radius: 10px;
+    width: 100%;
+    font-weight: 700;
 }
 
 .btn-momo:hover {
-    opacity: 0.8;
+    opacity: 0.9;
     color: #fff;
+}
+
+@media (max-width: 991px) {
+    .checkout-main {
+        margin-bottom: 16px;
+    }
 }
 </style>

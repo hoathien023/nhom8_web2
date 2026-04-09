@@ -1,5 +1,23 @@
 <?php
     class ProductModel {
+        private $products_column_cache = array();
+
+        private function has_products_column($column_name) {
+            if (array_key_exists($column_name, $this->products_column_cache)) {
+                return $this->products_column_cache[$column_name];
+            }
+
+            $sql = "SELECT COUNT(*) AS total
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'products'
+                      AND COLUMN_NAME = ?";
+            $row = pdo_query_one($sql, $column_name);
+            $exists = ((int)($row['total'] ?? 0) > 0);
+            $this->products_column_cache[$column_name] = $exists;
+            return $exists;
+        }
+
         public function calculate_sale_price_from_cost($cost_price, $profit_rate) {
             $cost_price = (float)$cost_price;
             $profit_rate = (float)$profit_rate;
@@ -18,12 +36,25 @@
         }
 
         public function insert_product($category_id, $name, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status) {
-           
-           $sql = "INSERT INTO products 
-           (category_id, name, unit, image, quantity, cost_price, profit_rate, price, sale_price, details, short_description, status)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+            $columns = array('category_id', 'name', 'image', 'quantity', 'price', 'sale_price', 'details', 'short_description', 'status');
+            $values = array($category_id, $name, $image, $quantity, $price, $sale_price, $details, $short_description, $status);
 
-            pdo_execute($sql, $category_id, $name, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status);
+            if ($this->has_products_column('unit')) {
+                array_splice($columns, 2, 0, 'unit');
+                array_splice($values, 2, 0, $unit);
+            }
+            if ($this->has_products_column('cost_price')) {
+                $columns[] = 'cost_price';
+                $values[] = $cost_price;
+            }
+            if ($this->has_products_column('profit_rate')) {
+                $columns[] = 'profit_rate';
+                $values[] = $profit_rate;
+            }
+
+            $placeholders = implode(',', array_fill(0, count($columns), '?'));
+            $sql = "INSERT INTO products (" . implode(', ', $columns) . ") VALUES ($placeholders)";
+            pdo_execute($sql, ...$values);
         }
 
         public function select_products() {
@@ -89,7 +120,8 @@
         }
 
         public function select_products_price_management($keyword = '', $category_id = 0, $status = -1) {
-            $sql = "SELECT p.product_id, p.name, p.cost_price, p.profit_rate, p.price, p.sale_price, p.status, c.name AS category_name
+            $profit_rate_select = $this->has_products_column('profit_rate') ? "p.profit_rate" : "0 AS profit_rate";
+            $sql = "SELECT p.product_id, p.name, p.cost_price, {$profit_rate_select}, p.price, p.sale_price, p.status, c.name AS category_name
                     FROM products p
                     LEFT JOIN categories c ON c.category_id = p.category_id
                     WHERE 1";
@@ -114,7 +146,8 @@
         }
 
         public function select_products_for_inventory_lookup() {
-            $sql = "SELECT product_id, category_id, name, unit, quantity
+            $unit_select = $this->has_products_column('unit') ? "unit" : "'-' AS unit";
+            $sql = "SELECT product_id, category_id, name, {$unit_select}, quantity
                     FROM products
                     WHERE status = 1
                     ORDER BY name ASC";
@@ -158,10 +191,11 @@
         }
 
         public function get_import_export_report($from_date, $to_date, $keyword = '', $category_id = 0) {
+            $unit_select = $this->has_products_column('unit') ? "p.unit" : "'-' AS unit";
             $sql = "SELECT
                         p.product_id,
                         p.name,
-                        p.unit,
+                        {$unit_select},
                         p.quantity AS current_quantity,
                         c.name AS category_name,
                         COALESCE(imp.total_import, 0) AS total_import,
@@ -200,7 +234,8 @@
         }
 
         public function get_low_stock_products($threshold, $keyword = '', $category_id = 0, $product_id = 0) {
-            $sql = "SELECT p.product_id, p.name, p.unit, p.quantity, p.status, c.name AS category_name
+            $unit_select = $this->has_products_column('unit') ? "p.unit" : "'-' AS unit";
+            $sql = "SELECT p.product_id, p.name, {$unit_select}, p.quantity, p.status, c.name AS category_name
                     FROM products p
                     LEFT JOIN categories c ON c.category_id = p.category_id
                     WHERE p.status = 1 AND p.quantity <= ?";
@@ -244,8 +279,13 @@
                 $sale_price = $new_price;
             }
 
-            $sql = "UPDATE products SET cost_price = ?, profit_rate = ?, price = ?, sale_price = ? WHERE product_id = ?";
-            pdo_execute($sql, $cost_price, $profit_rate, $new_price, $sale_price, $product_id);
+            if ($this->has_products_column('profit_rate')) {
+                $sql = "UPDATE products SET cost_price = ?, profit_rate = ?, price = ?, sale_price = ? WHERE product_id = ?";
+                pdo_execute($sql, $cost_price, $profit_rate, $new_price, $sale_price, $product_id);
+            } else {
+                $sql = "UPDATE products SET cost_price = ?, price = ?, sale_price = ? WHERE product_id = ?";
+                pdo_execute($sql, $cost_price, $new_price, $sale_price, $product_id);
+            }
             return true;
         }
 
@@ -294,11 +334,15 @@
                 $sql .= " image = '".$image."',";
             }
 
-            $sql .= " unit = '".$unit."',
-                    quantity = '".$quantity."', 
-                    cost_price = '".$cost_price."',
-                    profit_rate = '".$profit_rate."',
-                    price = '".$price."', 
+            if ($this->has_products_column('unit')) {
+                $sql .= " unit = '".$unit."',";
+            }
+            $sql .= " quantity = '".$quantity."', 
+                    cost_price = '".$cost_price."',";
+            if ($this->has_products_column('profit_rate')) {
+                $sql .= " profit_rate = '".$profit_rate."',";
+            }
+            $sql .= " price = '".$price."', 
                     sale_price = '".$sale_price."', 
                     details = '".$details."', 
                     short_description = '".$short_description."',

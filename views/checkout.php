@@ -66,6 +66,8 @@ try {
 <?php 
     if(isset($_SESSION['user'])) { 
         $user_id = $_SESSION['user']['id'];
+        $secondary_address = $AddressModel->select_address_user($user_id);
+        $has_secondary_address = is_array($secondary_address) && !empty(trim((string)($secondary_address['address'] ?? '')));
         $list_carts = $CartModel->select_all_carts($user_id);
         if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['selected_product_ids']) && is_array($_POST['selected_product_ids'])) {
             $_SESSION['checkout_selected_product_ids'] = array_values(array_unique(array_filter(array_map('intval', $_POST['selected_product_ids']))));
@@ -108,9 +110,9 @@ try {
                         echo $alert;
                     }
                 ?>
-            <div class="row">
-                <div class="col-lg-8">
-                    <h5>CHI TIẾT THANH TOÁN</h5>
+            <div class="row checkout-layout">
+                <div class="col-lg-8 checkout-main">
+                    <h5 class="checkout-title">CHI TIẾT THANH TOÁN</h5>
                     <div class="row">
                         <div class="col-lg-6 col-md-6 col-sm-6">
                             <div class="checkout__form__input">
@@ -147,26 +149,27 @@ try {
                             </div>
                         </div>
                         <div class="col-lg-12">
-                            <p style="color: #000000; font-weight:500; font-size: 15px;">Bạn có thể sử dụng địa chỉ mặc
-                                định khi đăng ký, hoặc nhập nhập địa chỉ khác</p>
+                            <p class="checkout-helper-text">Bạn có thể sử dụng địa chỉ mặc định khi đăng ký, hoặc nhập địa chỉ khác.</p>
                         </div>
-                        <div class="col-lg-3">
-                            <div class="cart__btn">
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="cart__btn address-switch-wrap">
                                 <a href="index.php?url=thanh-toan-2">Địa chỉ mới</a>
                             </div>
 
                         </div>
 
-                        <div class="col-4">
-                            <div class="cart__btn">
-                                <a href="index.php?url=thanh-toan-dia-chi2">Sủ dụng địa chỉ 2</a>
+                        <?php if ($has_secondary_address): ?>
+                            <div class="col-lg-4 col-md-5 col-sm-6">
+                                <div class="cart__btn address-switch-wrap">
+                                    <a href="index.php?url=thanh-toan-dia-chi2">Sử dụng địa chỉ 2</a>
+                                </div>
                             </div>
-                        </div>
+                        <?php endif; ?>
 
 
                     </div>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-4 checkout-sidebar">
                     <div class="checkout__order">
                         <h5>ĐƠN HÀNG</h5>
                         <div class="checkout__order__product">
@@ -294,18 +297,104 @@ try {
 
 
 <style>
-.cart__btn a:hover {
-    background-color: #0A68FF;
-    color: #fff;
-    transition: 0.2s;
+.checkout.spad {
+    padding-top: 28px;
+}
+
+.checkout-layout {
+    align-items: flex-start;
+}
+
+.checkout-main {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 16px;
+    padding: 18px 18px 10px;
+    box-shadow: 0 10px 26px rgba(21, 40, 74, 0.06);
+}
+
+.checkout-sidebar .checkout__order {
+    border: 1px solid #e8edf5;
+    border-radius: 16px;
+    box-shadow: 0 10px 26px rgba(21, 40, 74, 0.06);
+    background: #fff;
+    padding: 20px 18px 18px;
+}
+
+.checkout-title {
+    font-size: 25px;
+    margin-bottom: 18px;
+}
+
+.checkout__form .checkout__form__input p {
+    color: #24364d;
+    margin-bottom: 8px;
+    font-weight: 600;
 }
 
 .checkout__form .checkout__form__input input {
-    color: #000000;
+    color: #122033;
+    border: 1px solid #dbe4ef;
+    border-radius: 10px;
+    height: 48px;
+    background: #fbfdff;
 }
 
 .checkout__form .checkout__form__input input:focus {
-    border: 1px solid #999999;
+    border: 1px solid #0A68FF;
+    box-shadow: 0 0 0 3px rgba(10, 104, 255, 0.12);
+}
+
+.checkout-helper-text {
+    color: #4f6279;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.address-switch-wrap a {
+    width: 100%;
+    text-align: center;
+    border-radius: 10px;
+    border: 1px solid #d9e4f2;
+    background: #f7faff;
+    color: #1f3855;
+    font-weight: 600;
+    padding: 12px 16px 10px;
+    transition: all .2s ease;
+}
+
+.address-switch-wrap a:hover {
+    background-color: #0A68FF;
+    border-color: #0A68FF;
+    color: #fff;
+}
+
+.checkout__order h5 {
+    font-size: 26px;
+    margin-bottom: 14px;
+}
+
+.checkout__order__product ul li:first-child {
+    font-weight: 700;
+    color: #24364d;
+}
+
+.checkout__order__product ul li {
+    border-bottom: 1px dashed #e8edf5;
+    padding: 10px 0;
+    margin-bottom: 0;
+}
+
+.checkout__order__product ul li:last-child {
+    border-bottom: none;
+}
+
+.checkout__order__total ul li {
+    font-size: 22px;
+}
+
+.checkout__order__total ul li span {
+    color: #0A68FF;
 }
 
 .payment-method-box label {
@@ -360,6 +449,18 @@ try {
     color: #174ea6;
     font-size: 12px;
     line-height: 1.45;
+}
+
+.checkout-sidebar .site-btn {
+    width: 100%;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+@media (max-width: 991px) {
+    .checkout-main {
+        margin-bottom: 16px;
+    }
 }
 </style>
 

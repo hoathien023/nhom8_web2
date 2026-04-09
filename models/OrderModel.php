@@ -45,8 +45,18 @@
                     $stmtQty->execute([$quantity, $quantity, $product_id]);
                 }
 
-                $stmtDeleteCart = $conn->prepare("DELETE FROM carts WHERE user_id = ?");
-                $stmtDeleteCart->execute([$user_id]);
+                // Chỉ xóa các sản phẩm đã mua trong lần checkout này, không xóa toàn bộ giỏ.
+                $purchased_product_ids = array_values(array_unique(array_map(function ($item) {
+                    return (int)$item['product_id'];
+                }, $items)));
+                $purchased_product_ids = array_values(array_filter($purchased_product_ids, function ($id) {
+                    return $id > 0;
+                }));
+                if (!empty($purchased_product_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($purchased_product_ids), '?'));
+                    $stmtDeleteCart = $conn->prepare("DELETE FROM carts WHERE user_id = ? AND product_id IN ($placeholders)");
+                    $stmtDeleteCart->execute(array_merge([(int)$user_id], $purchased_product_ids));
+                }
 
                 $conn->commit();
                 return $order_id;
@@ -108,7 +118,8 @@
                     orderdetails.quantity,
                     orderdetails.price,
                     products.name AS product_name,
-                    products.image AS product_image
+                    products.image AS product_image,
+                    products.category_id AS product_category_id
                 FROM
                     orders
                 JOIN
