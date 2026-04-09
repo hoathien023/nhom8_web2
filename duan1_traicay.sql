@@ -574,7 +574,8 @@ ALTER TABLE `orderdetails`
 --
 ALTER TABLE `orders`
   ADD PRIMARY KEY (`order_id`),
-  ADD KEY `user_id` (`user_id`);
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `idx_orders_status_date` (`status`,`date`);
 
 --
 -- Indexes for table `posts`
@@ -594,7 +595,8 @@ ALTER TABLE `post_categories`
 --
 ALTER TABLE `products`
   ADD PRIMARY KEY (`product_id`),
-  ADD KEY `fk_category` (`category_id`);
+  ADD KEY `fk_category` (`category_id`),
+  ADD KEY `idx_products_status_quantity` (`status`,`quantity`);
 
 --
 -- Indexes for table `users`
@@ -744,6 +746,7 @@ ALTER TABLE `products`
 --
 ALTER TABLE `warehouse_receipts`
   ADD PRIMARY KEY (`receipt_id`),
+  ADD KEY `idx_wr_status_date` (`status`,`import_date`),
   ADD UNIQUE KEY `receipt_code` (`receipt_code`);
 
 --

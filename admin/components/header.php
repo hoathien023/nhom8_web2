@@ -77,6 +77,7 @@
                         <div class="dropdown-menu bg-transparent border-0">
                             <a href="thong-ke-san-pham" class="dropdown-item">Sản phẩm - danh mục</a>
                             <a href="thong-ke-don-hang" class="dropdown-item">Đơn hàng</a>
+                            <a href="index.php?quanli=thong-ke-ton-kho" class="dropdown-item">Tồn kho - nhập xuất</a>
 
                         </div>
                     </div>

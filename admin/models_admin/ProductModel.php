@@ -113,6 +113,117 @@
             return pdo_query($sql, ...$args);
         }
 
+        public function select_products_for_inventory_lookup() {
+            $sql = "SELECT product_id, category_id, name, unit, quantity
+                    FROM products
+                    WHERE status = 1
+                    ORDER BY name ASC";
+
+            return pdo_query($sql);
+        }
+
+        public function estimate_stock_at_date($product_id, $target_date) {
+            $product = $this->select_product_by_id($product_id);
+            if (!$product) {
+                return null;
+            }
+
+            $current_qty = (int)$product['quantity'];
+
+            $import_after_sql = "SELECT COALESCE(SUM(wri.import_quantity), 0)
+                                 FROM warehouse_receipt_items wri
+                                 INNER JOIN warehouse_receipts wr ON wr.receipt_id = wri.receipt_id
+                                 WHERE wri.product_id = ? AND wr.status = 1 AND wr.import_date > ?";
+            $import_after = (int)pdo_query_value($import_after_sql, $product_id, $target_date);
+
+            $export_after_sql = "SELECT COALESCE(SUM(od.quantity), 0)
+                                 FROM orderdetails od
+                                 INNER JOIN orders o ON o.order_id = od.order_id
+                                 WHERE od.product_id = ? AND o.status = 4 AND DATE(o.date) > ?";
+            $export_after = (int)pdo_query_value($export_after_sql, $product_id, $target_date);
+
+            $estimated_qty = $current_qty + $export_after - $import_after;
+            if ($estimated_qty < 0) {
+                $estimated_qty = 0;
+            }
+
+            return [
+                'product_id' => (int)$product['product_id'],
+                'product_name' => $product['name'],
+                'unit' => isset($product['unit']) ? $product['unit'] : '-',
+                'target_date' => $target_date,
+                'estimated_quantity' => $estimated_qty,
+                'current_quantity' => $current_qty
+            ];
+        }
+
+        public function get_import_export_report($from_date, $to_date, $keyword = '', $category_id = 0) {
+            $sql = "SELECT
+                        p.product_id,
+                        p.name,
+                        p.unit,
+                        p.quantity AS current_quantity,
+                        c.name AS category_name,
+                        COALESCE(imp.total_import, 0) AS total_import,
+                        COALESCE(exp.total_export, 0) AS total_export
+                    FROM products p
+                    LEFT JOIN categories c ON c.category_id = p.category_id
+                    LEFT JOIN (
+                        SELECT wri.product_id, SUM(wri.import_quantity) AS total_import
+                        FROM warehouse_receipt_items wri
+                        INNER JOIN warehouse_receipts wr ON wr.receipt_id = wri.receipt_id
+                        WHERE wr.status = 1 AND wr.import_date BETWEEN ? AND ?
+                        GROUP BY wri.product_id
+                    ) imp ON imp.product_id = p.product_id
+                    LEFT JOIN (
+                        SELECT od.product_id, SUM(od.quantity) AS total_export
+                        FROM orderdetails od
+                        INNER JOIN orders o ON o.order_id = od.order_id
+                        WHERE o.status = 4 AND DATE(o.date) BETWEEN ? AND ?
+                        GROUP BY od.product_id
+                    ) exp ON exp.product_id = p.product_id
+                    WHERE 1";
+            $args = [$from_date, $to_date, $from_date, $to_date];
+
+            if ($keyword !== '') {
+                $sql .= " AND p.name LIKE ?";
+                $args[] = "%" . $keyword . "%";
+            }
+            if ((int)$category_id > 0) {
+                $sql .= " AND p.category_id = ?";
+                $args[] = (int)$category_id;
+            }
+
+            $sql .= " ORDER BY p.name ASC";
+
+            return pdo_query($sql, ...$args);
+        }
+
+        public function get_low_stock_products($threshold, $keyword = '', $category_id = 0, $product_id = 0) {
+            $sql = "SELECT p.product_id, p.name, p.unit, p.quantity, p.status, c.name AS category_name
+                    FROM products p
+                    LEFT JOIN categories c ON c.category_id = p.category_id
+                    WHERE p.status = 1 AND p.quantity <= ?";
+            $args = [(int)$threshold];
+
+            if ((int)$product_id > 0) {
+                $sql .= " AND p.product_id = ?";
+                $args[] = (int)$product_id;
+            }
+            if ($keyword !== '') {
+                $sql .= " AND p.name LIKE ?";
+                $args[] = "%" . $keyword . "%";
+            }
+            if ((int)$category_id > 0) {
+                $sql .= " AND p.category_id = ?";
+                $args[] = (int)$category_id;
+            }
+
+            $sql .= " ORDER BY p.quantity ASC, p.name ASC";
+
+            return pdo_query($sql, ...$args);
+        }
+
         public function update_pricing($product_id, $cost_price, $profit_rate, $sale_price) {
             $product = $this->select_product_by_id($product_id);
             if (!$product) {
@@ -157,10 +268,21 @@
         }
 
         public function has_product_related_orders($product_id) {
-            $sql = "SELECT COUNT(*) FROM orderdetails WHERE product_id = ?";
-            $count = (int)pdo_query_value($sql, $product_id);
+            $order_sql = "SELECT COUNT(*) FROM orderdetails WHERE product_id = ?";
+            $order_count = (int)pdo_query_value($order_sql, $product_id);
+            if ($order_count > 0) {
+                return true;
+            }
 
-            return $count > 0;
+            // Nếu sản phẩm đã từng xuất hiện trong phiếu nhập hoàn thành
+            // thì không được xóa hẳn, chỉ chuyển sang ẩn.
+            $import_sql = "SELECT COUNT(*)
+                           FROM warehouse_receipt_items wri
+                           INNER JOIN warehouse_receipts wr ON wr.receipt_id = wri.receipt_id
+                           WHERE wri.product_id = ? AND wr.status = 1";
+            $import_count = (int)pdo_query_value($import_sql, $product_id);
+
+            return $import_count > 0;
         }
 
         public function update_product($category_id, $name, $unit, $image, $quantity, $cost_price, $profit_rate, $price, $sale_price, $details, $short_description, $status, $product_id) {

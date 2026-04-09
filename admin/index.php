@@ -119,6 +119,9 @@
             case 'thong-ke-don-hang':
                 require_once "thong-ke/orders.php";         
                 break;
+            case 'thong-ke-ton-kho':
+                require_once "thong-ke/inventory.php";
+                break;
             case 'bieu-do-luot-ban':
                 require_once "thong-ke/chart-order.php";         
                 break;

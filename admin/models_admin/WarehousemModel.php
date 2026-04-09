@@ -1,5 +1,26 @@
 <?php
     class WarehousemModel {
+        private function validate_receipt_items($items) {
+            if (!is_array($items) || empty($items)) {
+                throw new Exception("Phiếu nhập phải có ít nhất 1 sản phẩm.");
+            }
+
+            $seen = [];
+            foreach ($items as $item) {
+                $product_id = isset($item['product_id']) ? (int)$item['product_id'] : 0;
+                $import_price = isset($item['import_price']) ? (int)$item['import_price'] : 0;
+                $import_quantity = isset($item['import_quantity']) ? (int)$item['import_quantity'] : 0;
+
+                if ($product_id <= 0 || $import_price <= 0 || $import_quantity <= 0) {
+                    throw new Exception("Dữ liệu sản phẩm nhập không hợp lệ.");
+                }
+                if (isset($seen[$product_id])) {
+                    throw new Exception("Mỗi sản phẩm chỉ được xuất hiện 1 dòng trong cùng phiếu nhập.");
+                }
+                $seen[$product_id] = true;
+            }
+        }
+
         public function next_receipt_code() {
             $today = date('Ymd');
             $prefix = "PNK-" . $today . "-";
@@ -24,6 +45,7 @@
         public function create_receipt($receipt_code, $import_date, $note, $items) {
             $conn = pdo_get_connection();
             try {
+                $this->validate_receipt_items($items);
                 $conn->beginTransaction();
 
                 $sql = "INSERT INTO warehouse_receipts(receipt_code, import_date, note, status) VALUES(?,?,?,0)";
@@ -52,6 +74,7 @@
         public function update_receipt($receipt_id, $import_date, $note, $items) {
             $conn = pdo_get_connection();
             try {
+                $this->validate_receipt_items($items);
                 $conn->beginTransaction();
 
                 $check_stmt = $conn->prepare("SELECT status FROM warehouse_receipts WHERE receipt_id = ? FOR UPDATE");

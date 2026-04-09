@@ -3,7 +3,8 @@
     $to_date = isset($_GET['to_date']) ? trim($_GET['to_date']) : '';
     $status_filter = isset($_GET['status']) ? (int)$_GET['status'] : -1;
     $ward_keyword = isset($_GET['ward']) ? trim($_GET['ward']) : '';
-    $list_orders = $OrderModel->select_list_orders_admin($from_date, $to_date, $status_filter, $ward_keyword);
+    $ward_sort = isset($_GET['ward_sort']) ? trim($_GET['ward_sort']) : '';
+    $list_orders = $OrderModel->select_list_orders_admin($from_date, $to_date, $status_filter, $ward_keyword, $ward_sort);
 ?>
 <div class="container-fluid pt-4 px-4">
     <div class="bg-light text-center rounded p-4">
@@ -36,6 +37,13 @@
             </div>
             <div class="col-lg-3 col-md-6">
                 <input type="text" name="ward" value="<?=$ward_keyword?>" class="form-control" placeholder="Lọc theo phường (từ địa chỉ)">
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <select name="ward_sort" class="form-select">
+                    <option value="" <?=$ward_sort === '' ? 'selected' : ''?>>Không sắp xếp phường</option>
+                    <option value="asc" <?=$ward_sort === 'asc' ? 'selected' : ''?>>Phường A-Z</option>
+                    <option value="desc" <?=$ward_sort === 'desc' ? 'selected' : ''?>>Phường Z-A</option>
+                </select>
             </div>
             <div class="col-lg-3 col-md-6 d-flex">
                 <button type="submit" class="btn btn-custom me-2">Lọc</button>

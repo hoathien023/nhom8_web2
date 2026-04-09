@@ -2,7 +2,7 @@
     class OrderModel{
 
         // Select thông tin đon hàng
-        public function select_list_orders_admin($from_date = '', $to_date = '', $status = -1, $ward_keyword = '') {
+        public function select_list_orders_admin($from_date = '', $to_date = '', $status = -1, $ward_keyword = '', $ward_sort = '') {
             $sql = "
                     SELECT
                     orders.order_id,
@@ -39,7 +39,13 @@
                 $sql .= " AND orders.address LIKE ?";
                 $args[] = "%" . $ward_keyword . "%";
             }
-            $sql .= " ORDER BY orders.order_id DESC";
+            if ($ward_sort === 'asc') {
+                $sql .= " ORDER BY orders.address ASC, orders.order_id DESC";
+            } elseif ($ward_sort === 'desc') {
+                $sql .= " ORDER BY orders.address DESC, orders.order_id DESC";
+            } else {
+                $sql .= " ORDER BY orders.order_id DESC";
+            }
 
             return pdo_query($sql, ...$args);
         }
@@ -244,9 +250,16 @@
         //End Tổng doanh thu thống kê
 
         public function update_status_order($status, $order_id) {
+            $status = (int)$status;
+            $allowed_status = [1, 2, 3, 4, 5];
+            if (!in_array($status, $allowed_status, true)) {
+                return false;
+            }
+
             $sql = "UPDATE orders SET status = ? WHERE order_id = ?";
 
             pdo_execute($sql, $status, $order_id);
+            return true;
         }
 
 

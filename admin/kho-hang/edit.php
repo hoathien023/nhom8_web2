@@ -34,6 +34,8 @@
             $import_quantities = isset($_POST['import_quantity']) ? $_POST['import_quantity'] : [];
 
             $items = [];
+            $selected_product_ids = [];
+            $has_duplicate_product = false;
             for ($i = 0; $i < count($product_ids); $i++) {
                 $product_id = (int)$product_ids[$i];
                 $import_price = (int)$import_prices[$i];
@@ -41,6 +43,11 @@
                 if ($product_id <= 0 || $import_price <= 0 || $import_quantity <= 0) {
                     continue;
                 }
+                if (isset($selected_product_ids[$product_id])) {
+                    $has_duplicate_product = true;
+                    continue;
+                }
+                $selected_product_ids[$product_id] = true;
                 $items[] = [
                     'product_id' => $product_id,
                     'import_price' => $import_price,
@@ -50,6 +57,8 @@
 
             if ($import_date === '' || count($items) === 0) {
                 $error = 'Vui lòng nhập ngày nhập và ít nhất 1 sản phẩm.';
+            } elseif ($has_duplicate_product) {
+                $error = 'Mỗi sản phẩm chỉ được xuất hiện 1 dòng trong cùng phiếu nhập.';
             } else {
                 $updated = $WarehousemModel->update_receipt($receipt_id, $import_date, $note, $items);
                 if ($updated) {

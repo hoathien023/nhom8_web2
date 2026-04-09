@@ -8,6 +8,15 @@ ALTER TABLE products
 ALTER TABLE products
     MODIFY COLUMN cost_price DECIMAL(12,3) NOT NULL DEFAULT 0.000;
 
+ALTER TABLE products
+    ADD INDEX idx_products_status_quantity (status, quantity);
+
+ALTER TABLE orders
+    ADD INDEX idx_orders_status_date (status, date);
+
+ALTER TABLE warehouse_receipts
+    ADD INDEX idx_wr_status_date (status, import_date);
+
 -- Optional backfill for old rows (in case any null/empty values exist)
 UPDATE products
 SET unit = 'Kg'

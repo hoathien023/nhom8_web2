@@ -27,8 +27,13 @@
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["update_status_order"])) {
         $status = $_POST["status"];
         $order_id = $_POST["order_id"];
-        $OrderModel->update_status_order($status, $order_id);
+        $updated_status = $OrderModel->update_status_order($status, $order_id);
+        if (!$updated_status) {
+            header("Location: index.php?quanli=cap-nhat-don-hang&id=$order_id");
+            exit();
+        }
         header("Location: index.php?quanli=cap-nhat-don-hang&id=$order_id");
+        exit();
     }
 
 ?>

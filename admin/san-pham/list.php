@@ -157,7 +157,7 @@ for ($i = 1; $i <= $numberOfPages; $i++) {
                         $index++;
                        $orderNumber = ($currentPage - 1) * $productsPerPage + $index;
                        $unit = isset($value['unit']) ? $value['unit'] : '-';
-                       $cost_price = isset($value['cost_price']) ? (int)$value['cost_price'] : 0;
+                       $cost_price = isset($value['cost_price']) ? (float)$value['cost_price'] : 0;
                        $profit_rate = isset($value['profit_rate']) ? (float)$value['profit_rate'] : 0;
                     ?>
                     <tr>
