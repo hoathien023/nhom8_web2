@@ -64,9 +64,12 @@ if (isset($_GET['do_low_stock'])) {
                 <label class="mb-1">Sản phẩm</label>
                 <select name="lookup_product_id" class="form-select" required>
                     <option value="">-- Chọn sản phẩm --</option>
-                    <?php foreach ($products_for_lookup as $p): ?>
+                    <?php foreach ($products_for_lookup as $p):
+                        $pu = trim((string)($p['unit'] ?? ''));
+                        $opt_unit = ($pu !== '' && $pu !== '-') ? ' · ĐVT: ' . htmlspecialchars($pu, ENT_QUOTES, 'UTF-8') : '';
+                    ?>
                         <option value="<?=$p['product_id']?>" <?=$lookup_product_id === (int)$p['product_id'] ? 'selected' : ''?>>
-                            <?=$p['name']?> (Tồn hiện tại: <?=$p['quantity']?>)
+                            <?=htmlspecialchars($p['name'], ENT_QUOTES, 'UTF-8')?> (Số lượng tồn hiện tại: <?=(int)$p['quantity']?><?=$opt_unit?>)
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -84,10 +87,16 @@ if (isset($_GET['do_low_stock'])) {
         <?php endif; ?>
         <?php if ($lookup_result): ?>
             <div class="alert alert-info mt-3 mb-0">
-                <strong><?=$lookup_result['product_name']?></strong>:
-                tồn ước tính tại ngày <strong><?=$lookup_result['target_date']?></strong> là
-                <strong><?=$lookup_result['estimated_quantity']?></strong> <?=$lookup_result['unit']?>.
-                (Tồn hiện tại: <?=$lookup_result['current_quantity']?>)
+                <?php
+                    $current_qty = (int)($lookup_result['current_quantity'] ?? 0);
+                    $estimated_qty = (int)($lookup_result['estimated_quantity'] ?? 0);
+                    $u_raw = trim((string)($lookup_result['unit'] ?? ''));
+                    $unit_note = ($u_raw !== '' && $u_raw !== '-') ? ' <span class="text-muted small">(ĐVT: ' . htmlspecialchars($u_raw, ENT_QUOTES, 'UTF-8') . ')</span>' : '';
+                ?>
+                <strong><?=htmlspecialchars($lookup_result['product_name'], ENT_QUOTES, 'UTF-8')?></strong>:
+                <strong>Số lượng</strong> tồn ước tính tại ngày <strong><?=htmlspecialchars($lookup_result['target_date'], ENT_QUOTES, 'UTF-8')?></strong> là
+                <strong><?=$estimated_qty?></strong>.<?=$unit_note?>
+                (Số lượng tồn hiện tại: <strong><?=$current_qty?></strong>)
             </div>
         <?php endif; ?>
     </div>

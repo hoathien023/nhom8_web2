@@ -272,7 +272,11 @@
             }
             $ps = $has_pay_status ? (string)($row['payment_status'] ?? 'none') : 'none';
 
-            if ($pm === 'bank' && $ps === 'pending') {
+            $has_deadline_col = $this->has_orders_column('payment_deadline');
+            $deadline_val = $has_deadline_col ? ($row['payment_deadline'] ?? null) : null;
+            $is_bank_pending = ($ps === 'pending' && ((int)$row['status'] === 1)
+                && ($pm === 'bank' || !empty($deadline_val)));
+            if ($is_bank_pending) {
                 $this->cancel_pending_bank_transfer_order($user_id, $order_id);
                 return 'bank';
             }
@@ -326,15 +330,15 @@
             if (!$row || (int)$row['status'] !== 2) {
                 return false;
             }
-            if ((string)$row['payment_method'] !== 'bank' || (string)$row['payment_status'] !== 'submitted') {
+            if ((string)$row['payment_status'] !== 'submitted') {
                 return false;
             }
+            // submitted chỉ dùng cho luồng CK; bỏ phụ thuộc payment_method vì có thể từng ghi nhầm cod
             $sql = "UPDATE orders
-                    SET status = 5, payment_status = 'cancelled'
+                    SET status = 5, payment_status = 'cancelled', payment_method = 'bank'
                     WHERE user_id = ?
                       AND order_id = ?
                       AND status = 2
-                      AND payment_method = 'bank'
                       AND payment_status = 'submitted'";
             pdo_execute($sql, $user_id, $order_id);
             return 'bank';

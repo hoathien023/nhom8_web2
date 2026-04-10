@@ -51,10 +51,21 @@ if (isset($_SESSION['user'])) {
                 extract($value);
                 $list_products_buyed = $OrderModel->select_orderdetails_and_products($order_id);
 
+                $pm_db = strtolower(trim((string)($payment_method ?? '')));
+                if ($pm_db === '') {
+                    $pm_db = 'cod';
+                }
+                $ps_list = (string)($payment_status ?? 'none');
+                $deadline_row = $value['payment_deadline'] ?? null;
+                $is_bank_flow = ($pm_db === 'bank')
+                    || !empty($deadline_row)
+                    || in_array($ps_list, array('pending', 'submitted', 'expired'), true);
+                $pm_list = $is_bank_flow ? 'bank' : 'cod';
+
                 $order_status = 'Chưa xác nhận';
                 $status_class = 'pending';
-                $is_waiting_bank_payment = ((string)($payment_method ?? '') === 'bank')
-                    && ((string)($payment_status ?? '') === 'pending')
+                $is_waiting_bank_payment = ($pm_list === 'bank')
+                    && ($ps_list === 'pending')
                     && ((int)$status === 1);
                 if ($is_waiting_bank_payment) {
                     $order_status = 'Đang chờ thanh toán';
@@ -73,17 +84,12 @@ if (isset($_SESSION['user'])) {
                     $status_class = 'cancelled';
                 }
 
-                $pm_list = strtolower(trim((string)($payment_method ?? '')));
-                if ($pm_list === '') {
-                    $pm_list = 'cod';
-                }
-                $ps_list = (string)($payment_status ?? 'none');
                 $can_cancel_cod = ((int)$status === 1 && $pm_list !== 'bank');
                 $can_cancel_bank_pend = ((int)$status === 1 && $pm_list === 'bank' && $ps_list === 'pending');
                 $can_cancel_bank_ok = ((int)$status === 2 && $pm_list === 'bank' && $ps_list === 'submitted');
                 $can_cancel_on_list = $can_cancel_cod || $can_cancel_bank_pend || $can_cancel_bank_ok;
                 $cancel_list_confirm_msg = ($pm_list === 'bank')
-                    ? 'Bạn có chắc chắn muốn hủy đơn hàng? Quý khách vui lòng chờ, tiền sẽ hoàn lại trong 24h!'
+                    ? 'Bạn có chắc chắn muốn hủy đơn hàng? Quý khách vui lòng chờ, tiền sẽ hoàn lại về tài khoản trong vòng 24h làm việc.'
                     : 'Bạn có chắc chắn muốn hủy đơn hàng?';
 
                 $date_formated = $BaseModel->date_format($date, '');

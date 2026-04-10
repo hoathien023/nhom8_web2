@@ -186,12 +186,22 @@
                 return null;
             }
 
+            // Chuẩn hóa về Y-m-d (khớp cột import_date kiểu DATE trên phiếu nhập kho)
+            $target_date = trim((string)$target_date);
+            if ($target_date !== '') {
+                $ts = strtotime($target_date);
+                if ($ts !== false) {
+                    $target_date = date('Y-m-d', $ts);
+                }
+            }
+
             $current_qty = (int)$product['quantity'];
 
+            // Chỉ tính phiếu nhập đã hoàn thành; ngày nhập = ngày trên form tạo phiếu (import_date)
             $import_after_sql = "SELECT COALESCE(SUM(wri.import_quantity), 0)
                                  FROM warehouse_receipt_items wri
                                  INNER JOIN warehouse_receipts wr ON wr.receipt_id = wri.receipt_id
-                                 WHERE wri.product_id = ? AND wr.status = 1 AND wr.import_date > ?";
+                                 WHERE wri.product_id = ? AND wr.status = 1 AND DATE(wr.import_date) > ?";
             $import_after = (int)pdo_query_value($import_after_sql, $product_id, $target_date);
 
             $export_after_sql = "SELECT COALESCE(SUM(od.quantity), 0)
@@ -211,7 +221,9 @@
                 'unit' => isset($product['unit']) ? $product['unit'] : '-',
                 'target_date' => $target_date,
                 'estimated_quantity' => $estimated_qty,
-                'current_quantity' => $current_qty
+                'current_quantity' => $current_qty,
+                'import_after' => $import_after,
+                'export_after' => $export_after
             ];
         }
 

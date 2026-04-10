@@ -21,12 +21,17 @@ if (isset($_SESSION['user'])) {
 
     $oh = $list_orders[0];
     $status = (int)($oh['order_row_status'] ?? 0);
-    $payment_method = strtolower(trim((string)($oh['order_payment_method'] ?? '')));
-    if ($payment_method === '') {
-        $payment_method = 'cod';
-    }
     $payment_status = (string)($oh['order_payment_status'] ?? 'none');
     $payment_deadline = $oh['order_payment_deadline'] ?? null;
+    $payment_method_db = strtolower(trim((string)($oh['order_payment_method'] ?? '')));
+    if ($payment_method_db === '') {
+        $payment_method_db = 'cod';
+    }
+    // Đồng bộ với DB: đơn chuyển khoản có payment_status/hạn CK dù cột payment_method từng ghi sai vẫn xử lý như bank
+    $is_bank_flow = ($payment_method_db === 'bank')
+        || !empty($payment_deadline)
+        || in_array($payment_status, array('pending', 'submitted', 'expired'), true);
+    $payment_method = $is_bank_flow ? 'bank' : 'cod';
     $note = (string)($oh['order_note'] ?? '');
     $order_date = $oh['order_date'] ?? '';
     $total = (int)($oh['total'] ?? 0);
@@ -87,7 +92,7 @@ if (isset($_SESSION['user'])) {
                 $flash_cancel = $_SESSION['flash_order_cancel'];
                 unset($_SESSION['flash_order_cancel']);
                 if ($flash_cancel === 'bank') {
-                    echo '<div class="alert alert-info order-cancel-flash mb-3" role="alert"><strong>Đơn hàng đã được hủy.</strong> Quý khách vui lòng chờ, <strong>tiền sẽ hoàn lại trong 24h</strong>!</div>';
+                    echo '<div class="alert alert-info order-cancel-flash mb-3" role="alert"><strong>Đơn hàng đã được hủy.</strong> Quý khách vui lòng chờ, tiền sẽ hoàn lại về tài khoản trong vòng <strong>24h làm việc</strong>.</div>';
                 } else {
                     echo '<div class="alert alert-success order-cancel-flash mb-3" role="alert">Đơn hàng của bạn đã được <strong>hủy thành công</strong>.</div>';
                 }
@@ -138,19 +143,24 @@ if (isset($_SESSION['user'])) {
             <div class="order-detail-body row">
                 <div class="col-lg-7">
                     <h5 class="section-title-order">Sản phẩm trong đơn</h5>
-                    <?php foreach ($list_orders as $value):
-                        extract($value);
+                    <?php foreach ($list_orders as $row):
+                        $line_product_id = (int)($row['product_id'] ?? 0);
+                        $line_product_name = (string)($row['product_name'] ?? '');
+                        $line_product_image = (string)($row['product_image'] ?? '');
+                        $line_quantity = (int)($row['quantity'] ?? 0);
+                        $line_price = (int)($row['price'] ?? 0);
+                        $line_category_id = (int)($row['product_category_id'] ?? 0);
                     ?>
                     <div class="order-detail-item">
-                        <img src="upload/<?=$product_image?>" class="order-detail-item-img" alt="<?=$product_name?>">
+                        <img src="upload/<?=$line_product_image?>" class="order-detail-item-img" alt="<?=htmlspecialchars($line_product_name, ENT_QUOTES, 'UTF-8')?>">
                         <div class="order-detail-item-info">
-                            <h6><?=$product_name?></h6>
-                            <p class="mb-0">Số lượng: x<?=$quantity?></p>
-                            <?php if ((int)$status === 4 && (int)$product_id > 0 && (int)$product_category_id > 0): ?>
-                                <a href="index.php?url=chitietsanpham&id_sp=<?=$product_id?>&id_dm=<?=$product_category_id?>#tabs-2" class="order-item-review-link">Đánh giá sản phẩm này</a>
+                            <h6><?=htmlspecialchars($line_product_name, ENT_QUOTES, 'UTF-8')?></h6>
+                            <p class="mb-0">Số lượng: x<?=$line_quantity?></p>
+                            <?php if ((int)$status === 4 && $line_product_id > 0 && $line_category_id > 0): ?>
+                                <a href="index.php?url=chitietsanpham&id_sp=<?=$line_product_id?>&id_dm=<?=$line_category_id?>#tabs-2" class="order-item-review-link">Đánh giá sản phẩm này</a>
                             <?php endif; ?>
                         </div>
-                        <div class="order-detail-item-price"><?=number_format($price)?>₫</div>
+                        <div class="order-detail-item-price"><?=number_format($line_price)?>₫</div>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -188,7 +198,7 @@ if (isset($_SESSION['user'])) {
                         </div>
                         <?php if ($payment_method === 'bank' && (int)$status !== 5 && (int)$status !== 4): ?>
                         <div class="summary-row order-bank-refund-hint">
-                            <span>Khi hủy đơn chuyển khoản: <strong>Quý khách vui lòng chờ, tiền sẽ hoàn lại trong 24h!</strong></span>
+                            <span>Khi hủy đơn chuyển khoản: <strong>Quý khách vui lòng chờ, tiền sẽ hoàn lại về tài khoản trong vòng 24h làm việc.</strong></span>
                         </div>
                         <?php endif; ?>
                         <?php if ($payment_method === 'bank'): ?>
@@ -201,7 +211,7 @@ if (isset($_SESSION['user'])) {
                                     } elseif ((string)($payment_status ?? '') === 'submitted') {
                                         echo 'Đã gửi xác nhận chuyển khoản';
                                     } elseif ((int)$status === 5 && (string)$payment_status === 'cancelled' && $payment_method === 'bank') {
-                                        echo 'Đã hủy — tiền sẽ hoàn lại trong 24h';
+                                        echo 'Đã hủy — hoàn tiền trong 24h làm việc';
                                     } elseif ((string)($payment_status ?? '') === 'expired') {
                                         echo 'Quá hạn thanh toán';
                                     } elseif ((int)$status === 5) {
@@ -226,7 +236,7 @@ if (isset($_SESSION['user'])) {
                         <?php endif; ?>
                         <?php if ((int)$status === 5 && $payment_method === 'bank' && (string)$payment_status === 'cancelled'): ?>
                         <div class="summary-row order-refund-notice">
-                            <span><strong>Quý khách vui lòng chờ, tiền sẽ hoàn lại trong 24h!</strong></span>
+                            <span><strong>Quý khách vui lòng chờ, tiền sẽ hoàn lại về tài khoản trong vòng 24h làm việc.</strong></span>
                         </div>
                         <?php endif; ?>
                         <?php endif; ?>
@@ -247,7 +257,7 @@ if (isset($_SESSION['user'])) {
                     <?php if (!empty($can_user_cancel_order)): ?>
                         <?php
                         $cancel_confirm_msg = ($payment_method === 'bank')
-                            ? 'Bạn có chắc chắn muốn hủy đơn hàng? Quý khách vui lòng chờ, tiền sẽ hoàn lại trong 24h!'
+                            ? 'Bạn có chắc chắn muốn hủy đơn hàng? Quý khách vui lòng chờ, tiền sẽ hoàn lại về tài khoản trong vòng 24h làm việc.'
                             : 'Bạn có chắc chắn muốn hủy đơn hàng?';
                         ?>
                         <form method="post" action="" class="d-inline-block mb-0" onsubmit="return confirm(<?=json_encode($cancel_confirm_msg, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP)?>);">
