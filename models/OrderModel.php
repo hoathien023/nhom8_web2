@@ -148,9 +148,10 @@
 
         public function getFullOrderInformation($user_id, $order_id) {
             $this->cancel_expired_bank_transfer_orders((int)$user_id);
-            $payment_method_select = $this->has_orders_column('payment_method') ? "orders.payment_method" : "'cod' AS payment_method";
-            $payment_status_select = $this->has_orders_column('payment_status') ? "orders.payment_status" : "'none' AS payment_status";
-            $deadline_select = $this->has_orders_column('payment_deadline') ? "orders.payment_deadline" : "NULL AS payment_deadline";
+            // Alias toàn bộ cột cấp đơn để tránh trùng tên với bảng join (PDO chỉ giữ một key, dễ lấy nhầm).
+            $payment_method_select = $this->has_orders_column('payment_method') ? "orders.payment_method AS order_payment_method" : "'cod' AS order_payment_method";
+            $payment_status_select = $this->has_orders_column('payment_status') ? "orders.payment_status AS order_payment_status" : "'none' AS order_payment_status";
+            $deadline_select = $this->has_orders_column('payment_deadline') ? "orders.payment_deadline AS order_payment_deadline" : "NULL AS order_payment_deadline";
             $sql = "
                     SELECT
                     orders.order_id,
@@ -159,8 +160,8 @@
                     orders.total,
                     orders.address AS order_address,
                     orders.phone AS order_phone,
-                    orders.note,
-                    orders.status,
+                    orders.note AS order_note,
+                    orders.status AS order_row_status,
                     {$payment_method_select},
                     {$payment_status_select},
                     {$deadline_select},
@@ -249,6 +250,106 @@
                       AND status = 1";
             pdo_execute($sql, (int)$user_id, (int)$order_id);
             return true;
+        }
+
+        /**
+         * Khách hủy đơn ở trạng thái chờ (status = 1).
+         * @return false|'cod'|'bank'
+         */
+        public function cancel_pending_order_by_user($user_id, $order_id) {
+            $user_id = (int)$user_id;
+            $order_id = (int)$order_id;
+            $row = pdo_query_one("SELECT * FROM orders WHERE user_id = ? AND order_id = ?", $user_id, $order_id);
+            if (!$row || (int)$row['status'] !== 1) {
+                return false;
+            }
+
+            $has_method = $this->has_orders_column('payment_method');
+            $has_pay_status = $this->has_orders_column('payment_status');
+            $pm = $has_method ? strtolower(trim((string)($row['payment_method'] ?? ''))) : '';
+            if ($pm === '') {
+                $pm = 'cod';
+            }
+            $ps = $has_pay_status ? (string)($row['payment_status'] ?? 'none') : 'none';
+
+            if ($pm === 'bank' && $ps === 'pending') {
+                $this->cancel_pending_bank_transfer_order($user_id, $order_id);
+                return 'bank';
+            }
+
+            if ($pm !== 'bank') {
+                if ($has_method && $has_pay_status) {
+                    $sql = "UPDATE orders
+                            SET status = 5, payment_status = 'cancelled'
+                            WHERE user_id = ?
+                              AND order_id = ?
+                              AND status = 1
+                              AND (payment_method = 'cod' OR payment_method IS NULL OR payment_method = '')";
+                    pdo_execute($sql, $user_id, $order_id);
+                } elseif ($has_method && !$has_pay_status) {
+                    $sql = "UPDATE orders
+                            SET status = 5
+                            WHERE user_id = ?
+                              AND order_id = ?
+                              AND status = 1
+                              AND (payment_method = 'cod' OR payment_method IS NULL OR payment_method = '')";
+                    pdo_execute($sql, $user_id, $order_id);
+                } else {
+                    $sql = "UPDATE orders
+                            SET status = 5
+                            WHERE user_id = ?
+                              AND order_id = ?
+                              AND status = 1";
+                    pdo_execute($sql, $user_id, $order_id);
+                }
+                return 'cod';
+            }
+
+            return false;
+        }
+
+        /**
+         * Khách hủy đơn chuyển khoản đã xác nhận thanh toán (status = 2, submitted) trước khi giao.
+         * @return false|'bank'
+         */
+        public function cancel_confirmed_bank_order_by_user($user_id, $order_id) {
+            $user_id = (int)$user_id;
+            $order_id = (int)$order_id;
+            if (!$this->has_orders_column('payment_method') || !$this->has_orders_column('payment_status')) {
+                return false;
+            }
+            $row = pdo_query_one(
+                "SELECT status, payment_method, payment_status FROM orders WHERE user_id = ? AND order_id = ?",
+                $user_id,
+                $order_id
+            );
+            if (!$row || (int)$row['status'] !== 2) {
+                return false;
+            }
+            if ((string)$row['payment_method'] !== 'bank' || (string)$row['payment_status'] !== 'submitted') {
+                return false;
+            }
+            $sql = "UPDATE orders
+                    SET status = 5, payment_status = 'cancelled'
+                    WHERE user_id = ?
+                      AND order_id = ?
+                      AND status = 2
+                      AND payment_method = 'bank'
+                      AND payment_status = 'submitted'";
+            pdo_execute($sql, $user_id, $order_id);
+            return 'bank';
+        }
+
+        /**
+         * Hủy đơn (chờ COD / CK chờ thanh toán / CK đã xác nhận chuyển khoản).
+         * @return false|'cod'|'bank'
+         */
+        public function cancel_order_by_user($user_id, $order_id) {
+            $kind = $this->cancel_pending_order_by_user($user_id, $order_id);
+            if ($kind !== false) {
+                return $kind;
+            }
+            return $this->cancel_confirmed_bank_order_by_user($user_id, $order_id);
         }
 
         public function force_update_order_status($user_id, $order_id, $status_value) {

@@ -3,6 +3,19 @@
 <?php
 if (isset($_SESSION['user'])) {
     $user_id = $_SESSION['user']['id'];
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_order_list'])) {
+        $cancel_oid = isset($_POST['order_id']) ? (int)$_POST['order_id'] : 0;
+        if ($cancel_oid > 0) {
+            $cancel_kind = $OrderModel->cancel_order_by_user($user_id, $cancel_oid);
+            if ($cancel_kind === 'bank') {
+                $_SESSION['flash_order_cancel'] = 'bank';
+            } elseif ($cancel_kind === 'cod') {
+                $_SESSION['flash_order_cancel'] = 'cod';
+            }
+            header('Location: index.php?url=chi-tiet-don-hang&id=' . $cancel_oid);
+            exit();
+        }
+    }
     $list_orders = $OrderModel->select_list_orders($user_id);
 ?>
 
@@ -60,6 +73,19 @@ if (isset($_SESSION['user'])) {
                     $status_class = 'cancelled';
                 }
 
+                $pm_list = strtolower(trim((string)($payment_method ?? '')));
+                if ($pm_list === '') {
+                    $pm_list = 'cod';
+                }
+                $ps_list = (string)($payment_status ?? 'none');
+                $can_cancel_cod = ((int)$status === 1 && $pm_list !== 'bank');
+                $can_cancel_bank_pend = ((int)$status === 1 && $pm_list === 'bank' && $ps_list === 'pending');
+                $can_cancel_bank_ok = ((int)$status === 2 && $pm_list === 'bank' && $ps_list === 'submitted');
+                $can_cancel_on_list = $can_cancel_cod || $can_cancel_bank_pend || $can_cancel_bank_ok;
+                $cancel_list_confirm_msg = ($pm_list === 'bank')
+                    ? 'Bạn có chắc chắn muốn hủy đơn hàng? Quý khách vui lòng chờ, tiền sẽ hoàn lại trong 24h!'
+                    : 'Bạn có chắc chắn muốn hủy đơn hàng?';
+
                 $date_formated = $BaseModel->date_format($date, '');
             ?>
             <article class="order-card">
@@ -91,6 +117,12 @@ if (isset($_SESSION['user'])) {
                         <span class="order-total-value"><?=number_format($total)?>₫</span>
                         <?php if ($is_waiting_bank_payment): ?>
                             <a href="index.php?url=thanh-toan-ngan-hang&id=<?=$order_id?>" class="site-btn order-btn-detail">Thanh toán đơn hàng</a>
+                        <?php endif; ?>
+                        <?php if (!empty($can_cancel_on_list)): ?>
+                            <form method="post" action="index.php?url=don-hang" class="d-inline-block mb-0" onsubmit="return confirm(<?=json_encode($cancel_list_confirm_msg, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP)?>);">
+                                <input type="hidden" name="order_id" value="<?=$order_id?>">
+                                <button type="submit" name="cancel_order_list" value="1" class="site-btn order-btn-cancel-list">Hủy đơn hàng</button>
+                            </form>
                         <?php endif; ?>
                         <a href="index.php?url=chi-tiet-don-hang&id=<?=$order_id?>" class="site-btn order-btn-detail">Xem chi tiết</a>
                     </div>
@@ -283,6 +315,22 @@ if (isset($_SESSION['user'])) {
     padding: 9px 14px;
     min-width: 120px;
     text-align: center;
+}
+
+.order-btn-cancel-list {
+    background: #ef4444;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 14px;
+    min-width: 120px;
+    text-align: center;
+    color: #fff;
+    cursor: pointer;
+}
+
+.order-btn-cancel-list:hover {
+    filter: brightness(0.95);
+    color: #fff;
 }
 
 @media (max-width: 768px) {

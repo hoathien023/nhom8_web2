@@ -39,6 +39,21 @@ function pdo_get_connection(){
     }
 
     if ($last_exception instanceof PDOException) {
+        $msg = $last_exception->getMessage();
+        $is_refused = (stripos($msg, '2002') !== false
+            || stripos($msg, 'actively refused') !== false
+            || stripos($msg, 'Connection refused') !== false
+            || stripos($msg, 'could not be made') !== false);
+        if ($is_refused) {
+            throw new PDOException(
+                'Không kết nối được MySQL/MariaDB (chưa chạy hoặc sai cổng). '
+                . 'Mở XAMPP Control Panel → bấm Start ở dòng MySQL → tải lại trang. '
+                . 'Nếu đổi cổng MySQL, chỉnh db_port trong file config/config.local.php. '
+                . '[Chi tiết: ' . $msg . ']',
+                (int) $last_exception->getCode(),
+                $last_exception
+            );
+        }
         throw $last_exception;
     }
 

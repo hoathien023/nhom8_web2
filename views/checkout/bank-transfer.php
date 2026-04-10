@@ -37,9 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_bank_transfer
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_bank_transfer'])) {
     $OrderModel->cancel_expired_bank_transfer_orders($user_id);
-    $OrderModel->cancel_pending_bank_transfer_order($user_id, $order_id);
-    // Đảm bảo DB luôn chuyển sang "Đã hủy" kể cả khi thiếu cột payment_*.
-    $OrderModel->force_update_order_status($user_id, $order_id, 5);
+    $cancel_from_bank_page = $OrderModel->cancel_order_by_user($user_id, $order_id);
+    if ($cancel_from_bank_page === 'bank') {
+        $_SESSION['flash_order_cancel'] = 'bank';
+    } elseif ($cancel_from_bank_page === 'cod') {
+        $_SESSION['flash_order_cancel'] = 'cod';
+    }
     header("Location: index.php?url=chi-tiet-don-hang&id=" . $order_id);
     exit();
 }

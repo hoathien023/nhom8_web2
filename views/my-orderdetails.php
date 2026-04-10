@@ -2,8 +2,13 @@
 if (isset($_SESSION['user'])) {
     $user_id = $_SESSION['user']['id'];
     $order_id = isset($_GET['id']) && $_GET['id'] > 0 ? (int)$_GET['id'] : 0;
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_bank_transfer_order']) && $order_id > 0) {
-        $OrderModel->cancel_pending_bank_transfer_order($user_id, $order_id);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_order']) && $order_id > 0) {
+        $cancel_kind = $OrderModel->cancel_order_by_user($user_id, $order_id);
+        if ($cancel_kind === 'bank') {
+            $_SESSION['flash_order_cancel'] = 'bank';
+        } elseif ($cancel_kind === 'cod') {
+            $_SESSION['flash_order_cancel'] = 'cod';
+        }
         header("Location: index.php?url=chi-tiet-don-hang&id=" . $order_id);
         exit();
     }
@@ -14,9 +19,25 @@ if (isset($_SESSION['user'])) {
         exit();
     }
 
-    foreach ($list_orders as $value) {
-        extract($value);
+    $oh = $list_orders[0];
+    $status = (int)($oh['order_row_status'] ?? 0);
+    $payment_method = strtolower(trim((string)($oh['order_payment_method'] ?? '')));
+    if ($payment_method === '') {
+        $payment_method = 'cod';
     }
+    $payment_status = (string)($oh['order_payment_status'] ?? 'none');
+    $payment_deadline = $oh['order_payment_deadline'] ?? null;
+    $note = (string)($oh['order_note'] ?? '');
+    $order_date = $oh['order_date'] ?? '';
+    $total = (int)($oh['total'] ?? 0);
+    $order_address = (string)($oh['order_address'] ?? '');
+    $order_phone = (string)($oh['order_phone'] ?? '');
+    $full_name = (string)($oh['full_name'] ?? '');
+
+    $can_cancel_cod_pending = ((int)$status === 1 && $payment_method !== 'bank');
+    $can_cancel_bank_pending = ((int)$status === 1 && $payment_method === 'bank' && $payment_status === 'pending');
+    $can_cancel_bank_confirmed = ((int)$status === 2 && $payment_method === 'bank' && $payment_status === 'submitted');
+    $can_user_cancel_order = $can_cancel_cod_pending || $can_cancel_bank_pending || $can_cancel_bank_confirmed;
     $rebuy_product_ids = array_values(array_unique(array_map('intval', array_column($list_orders, 'product_id'))));
     $rebuy_query = implode(',', $rebuy_product_ids);
 
@@ -61,6 +82,17 @@ if (isset($_SESSION['user'])) {
 <section class="spad pt-4">
     <div class="container order-detail-wrap">
         <article class="order-detail-card">
+            <?php
+            if (!empty($_SESSION['flash_order_cancel'])) {
+                $flash_cancel = $_SESSION['flash_order_cancel'];
+                unset($_SESSION['flash_order_cancel']);
+                if ($flash_cancel === 'bank') {
+                    echo '<div class="alert alert-info order-cancel-flash mb-3" role="alert"><strong>Đơn hàng đã được hủy.</strong> Quý khách vui lòng chờ, <strong>tiền sẽ hoàn lại trong 24h</strong>!</div>';
+                } else {
+                    echo '<div class="alert alert-success order-cancel-flash mb-3" role="alert">Đơn hàng của bạn đã được <strong>hủy thành công</strong>.</div>';
+                }
+            }
+            ?>
             <div class="order-detail-head">
                 <div>
                     <h4>Chi tiết đơn hàng #<?=$order_id?></h4>
@@ -152,9 +184,14 @@ if (isset($_SESSION['user'])) {
                         </div>
                         <div class="summary-row">
                             <span>Phương thức thanh toán</span>
-                            <strong><?=((string)($payment_method ?? '') === 'bank') ? 'Chuyển khoản ngân hàng' : 'Thanh toán khi nhận hàng (COD)'?></strong>
+                            <strong><?=($payment_method === 'bank') ? 'Chuyển khoản ngân hàng' : 'Thanh toán khi nhận hàng (COD)'?></strong>
                         </div>
-                        <?php if ((string)($payment_method ?? '') === 'bank'): ?>
+                        <?php if ($payment_method === 'bank' && (int)$status !== 5 && (int)$status !== 4): ?>
+                        <div class="summary-row order-bank-refund-hint">
+                            <span>Khi hủy đơn chuyển khoản: <strong>Quý khách vui lòng chờ, tiền sẽ hoàn lại trong 24h!</strong></span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($payment_method === 'bank'): ?>
                         <div class="summary-row">
                             <span>Trạng thái thanh toán</span>
                             <strong>
@@ -163,8 +200,12 @@ if (isset($_SESSION['user'])) {
                                         echo 'Đang chờ thanh toán';
                                     } elseif ((string)($payment_status ?? '') === 'submitted') {
                                         echo 'Đã gửi xác nhận chuyển khoản';
-                                    } elseif ((string)($payment_status ?? '') === 'expired' || (int)$status === 5) {
+                                    } elseif ((int)$status === 5 && (string)$payment_status === 'cancelled' && $payment_method === 'bank') {
+                                        echo 'Đã hủy — tiền sẽ hoàn lại trong 24h';
+                                    } elseif ((string)($payment_status ?? '') === 'expired') {
                                         echo 'Quá hạn thanh toán';
+                                    } elseif ((int)$status === 5) {
+                                        echo 'Đã hủy';
                                     } else {
                                         echo 'Đang xử lý';
                                     }
@@ -183,6 +224,11 @@ if (isset($_SESSION['user'])) {
                             <strong><a href="index.php?url=thanh-toan-ngan-hang&id=<?=$order_id?>">Mở trang QR để thanh toán</a></strong>
                         </div>
                         <?php endif; ?>
+                        <?php if ((int)$status === 5 && $payment_method === 'bank' && (string)$payment_status === 'cancelled'): ?>
+                        <div class="summary-row order-refund-notice">
+                            <span><strong>Quý khách vui lòng chờ, tiền sẽ hoàn lại trong 24h!</strong></span>
+                        </div>
+                        <?php endif; ?>
                         <?php endif; ?>
                         <div class="summary-row total">
                             <span>Thành tiền</span>
@@ -197,8 +243,15 @@ if (isset($_SESSION['user'])) {
                 <div class="order-detail-actions-right">
                     <?php if ($is_waiting_bank_payment): ?>
                         <a href="index.php?url=thanh-toan-ngan-hang&id=<?=$order_id?>" class="site-btn">Thanh toán đơn hàng</a>
-                        <form method="post" action="" class="d-inline-block mb-0">
-                            <button type="submit" name="cancel_bank_transfer_order" value="1" class="site-btn order-btn-cancel-payment">Hủy thanh toán</button>
+                    <?php endif; ?>
+                    <?php if (!empty($can_user_cancel_order)): ?>
+                        <?php
+                        $cancel_confirm_msg = ($payment_method === 'bank')
+                            ? 'Bạn có chắc chắn muốn hủy đơn hàng? Quý khách vui lòng chờ, tiền sẽ hoàn lại trong 24h!'
+                            : 'Bạn có chắc chắn muốn hủy đơn hàng?';
+                        ?>
+                        <form method="post" action="" class="d-inline-block mb-0" onsubmit="return confirm(<?=json_encode($cancel_confirm_msg, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP)?>);">
+                            <button type="submit" name="cancel_order" value="1" class="site-btn order-btn-cancel-payment">Hủy đơn hàng</button>
                         </form>
                     <?php endif; ?>
                     <?php if ((int)$status === 4): ?>
@@ -389,6 +442,42 @@ if (isset($_SESSION['user'])) {
 
 .order-btn-cancel-payment {
     background: #ef4444;
+}
+
+.order-cancel-flash {
+    border-radius: 10px;
+    border: none;
+}
+
+.summary-row.order-refund-notice {
+    flex-direction: column;
+    align-items: flex-start;
+    background: #f0f7ff;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 4px;
+    border: 1px solid #cfe8ff;
+}
+
+.summary-row.order-refund-notice span {
+    color: #1e3a5f;
+    line-height: 1.5;
+}
+
+.summary-row.order-bank-refund-hint {
+    flex-direction: column;
+    align-items: flex-start;
+    background: #f8f5ff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 2px;
+    border: 1px solid #e4dcfa;
+}
+
+.summary-row.order-bank-refund-hint span {
+    color: #4a3d6b;
+    font-size: 14px;
+    line-height: 1.45;
 }
 
 .order-btn-rebuy {
